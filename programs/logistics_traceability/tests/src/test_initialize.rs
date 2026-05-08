@@ -56,3 +56,38 @@ fn initialize_sets_config_authority_and_zero_counters() {
     assert_eq!(cfg.checkpoints_recorded, 0);
     assert_eq!(cfg.incidents_reported, 0);
 }
+
+#[test]
+fn initialize_rejects_second_call() {
+    let payer = load_payer_keypair();
+    let client =
+        Client::new_with_options(Cluster::Localnet, &payer, CommitmentConfig::confirmed());
+    let program = client.program(ID).unwrap();
+    let (cfg_pda, _) = Pubkey::find_program_address(&[CONFIG_SEED], &ID);
+
+    program
+        .request()
+        .accounts(logistics_traceability::accounts::Initialize {
+            authority: payer.pubkey(),
+            program_config: cfg_pda,
+            system_program: system_program::ID,
+        })
+        .args(logistics_traceability::instruction::Initialize {})
+        .send()
+        .expect("first initialize");
+
+    let second = program
+        .request()
+        .accounts(logistics_traceability::accounts::Initialize {
+            authority: payer.pubkey(),
+            program_config: cfg_pda,
+            system_program: system_program::ID,
+        })
+        .args(logistics_traceability::instruction::Initialize {})
+        .send();
+
+    assert!(
+        second.is_err(),
+        "second initialize must fail once ProgramConfig exists"
+    );
+}
