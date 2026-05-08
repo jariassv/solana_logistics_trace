@@ -28,3 +28,6 @@ pub fn build_rocket(
             routes![handlers::solana::solana_health_rpc],
         )
 }
+
+#[cfg(test)]
+mod tests;
