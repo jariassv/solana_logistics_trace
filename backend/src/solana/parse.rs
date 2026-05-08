@@ -192,6 +192,16 @@ mod tests {
     }
 
     #[test]
+    fn parse_json_fixture_register_actor_instruction() {
+        const FIXTURE: &str =
+            include_str!("../../tests/fixtures/register_actor_tx.json");
+        let tx: Value = serde_json::from_str(FIXTURE).expect("fixture JSON");
+        let prog = "Prog111111111111111111111111111111111111111";
+        let disc = register_actor_ix();
+        find_program_instruction(&tx, prog, &disc).expect("fixture should parse");
+    }
+
+    #[test]
     fn find_program_instruction_errors_when_discriminator_mismatch() {
         let prog = "Prog111111111111111111111111111111111111111";
         let want = register_actor_ix();
