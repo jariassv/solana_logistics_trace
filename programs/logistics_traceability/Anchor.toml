@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+logistics_traceability = "DTExdaP7V1Ng2idBU1asgt3TGzH39PLAzdTCk7Dsa5Pw"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
