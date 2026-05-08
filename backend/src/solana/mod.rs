@@ -1,7 +1,41 @@
+pub mod borsh_accounts;
+pub mod decode;
+pub mod discriminators;
+pub mod parse;
 pub mod rpc_http;
 
 use async_trait::async_trait;
 use serde_json::Value;
+
+/// Failures while fetching or interpreting chain data for sync (§9).
+#[derive(Debug)]
+pub enum SolanaSyncError {
+    TxNotFound,
+    WrongProgram,
+    WrongInstruction,
+    MalformedTransaction,
+    AccountDecode,
+    Conflict(String),
+    Validation(String),
+    Upstream(String),
+}
+
+impl std::fmt::Display for SolanaSyncError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SolanaSyncError::TxNotFound => write!(f, "transaction not found"),
+            SolanaSyncError::WrongProgram => write!(f, "program id missing from transaction"),
+            SolanaSyncError::WrongInstruction => write!(f, "instruction does not match endpoint"),
+            SolanaSyncError::MalformedTransaction => write!(f, "unexpected transaction json layout"),
+            SolanaSyncError::AccountDecode => write!(f, "failed to decode on-chain account data"),
+            SolanaSyncError::Conflict(msg) => write!(f, "{msg}"),
+            SolanaSyncError::Validation(msg) => write!(f, "{msg}"),
+            SolanaSyncError::Upstream(msg) => write!(f, "{msg}"),
+        }
+    }
+}
+
+impl std::error::Error for SolanaSyncError {}
 
 /// Transport or JSON-RPC level failure surfaced to handlers.
 #[derive(Debug, Clone)]
