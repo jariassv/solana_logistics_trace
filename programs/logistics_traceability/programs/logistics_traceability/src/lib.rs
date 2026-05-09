@@ -18,6 +18,15 @@ pub mod logistics_traceability {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+        process_initialize(ctx)
+    }
+
+    pub fn register_actor(
+        ctx: Context<RegisterActor>,
+        role: ActorRole,
+        name: String,
+        location: String,
+    ) -> Result<()> {
+        process_register_actor(ctx, role, name, location)
     }
 }

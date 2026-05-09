@@ -17,7 +17,7 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<Initialize>) -> Result<()> {
+pub fn process_initialize(ctx: Context<Initialize>) -> Result<()> {
     let cfg = &mut ctx.accounts.program_config;
     cfg.authority = ctx.accounts.authority.key();
     cfg.actors_registered = 0;
