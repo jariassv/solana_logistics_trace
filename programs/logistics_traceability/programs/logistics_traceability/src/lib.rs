@@ -11,7 +11,7 @@ pub use events::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("CqNEvq5AtuZH7ffQCrt63m5M9g3MLhsvgVnXYS5fMbEc");
+declare_id!("EgpaB2yJF7jrRa71nrpoiXMqBvzpX5jrby9Tbor7LAMC");
 
 #[program]
 pub mod logistics_traceability {
