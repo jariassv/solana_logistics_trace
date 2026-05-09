@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::{ACTOR_SEED, CONFIG_SEED, SHIPMENT_SEED},
     error::ErrorCode,
+    events::ShipmentCreated,
     state::{Actor, ProgramConfig, Shipment, ShipmentStatus},
 };
 
@@ -64,6 +65,12 @@ pub fn process_create_shipment(
     s.date_delivered = 0;
 
     cfg.shipments_created = new_id;
+
+    emit!(ShipmentCreated {
+        on_chain_shipment_id: new_id,
+        sender: s.sender,
+        recipient: s.recipient,
+    });
 
     let actor = &mut ctx.accounts.sender_actor;
     actor.shipments_created = actor

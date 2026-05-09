@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::{ACTOR_SEED, CHECKPOINT_SEED, CONFIG_SEED},
     error::ErrorCode,
+    events::CheckpointRecorded,
     state::{
         next_status_after_checkpoint, Actor, Checkpoint, CheckpointType, ProgramConfig, Shipment,
         ShipmentStatus,
@@ -69,6 +70,12 @@ pub fn process_record_checkpoint(
     cp.humidity = humidity;
     cp.metadata = metadata;
     cp.timestamp = now;
+
+    emit!(CheckpointRecorded {
+        on_chain_checkpoint_id: new_cp_id,
+        shipment_id: shipment.id,
+        checkpoint_type,
+    });
 
     shipment.checkpoint_count = shipment
         .checkpoint_count

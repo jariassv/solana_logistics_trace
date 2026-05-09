@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::{ACTOR_SEED, CONFIG_SEED},
     error::ErrorCode,
+    events::ActorRegistered,
     state::{Actor, ActorRole, ProgramConfig},
 };
 
@@ -47,6 +48,12 @@ pub fn process_register_actor(
     actor.shipments_created = 0;
     actor.checkpoints_recorded = 0;
     actor.created_at = now;
+
+    emit!(ActorRegistered {
+        wallet: actor.wallet,
+        role: actor.role,
+        name: actor.name.clone(),
+    });
 
     ctx.accounts.program_config.actors_registered = ctx
         .accounts
