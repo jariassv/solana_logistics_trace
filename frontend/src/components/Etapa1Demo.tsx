@@ -216,6 +216,8 @@ export function Etapa1Demo() {
     );
     const [catalogsLoading, setCatalogsLoading] = useState(false);
     const [logExpanded, setLogExpanded] = useState(true);
+    /** `true` si la PDA Actor para `payer` ya tiene datos en esta red. */
+    const [actorAccountExists, setActorAccountExists] = useState<boolean | null>(null);
 
     const append = useCallback((msg: string) => {
         setLogs((prev) => [
@@ -350,6 +352,43 @@ export function Etapa1Demo() {
         [wallet],
     );
 
+    useEffect(() => {
+        let cancel = false;
+        if (!programId || !payer) {
+            queueMicrotask(() => {
+                if (!cancel) {
+                    setActorAccountExists(null);
+                }
+            });
+            return () => {
+                cancel = true;
+            };
+        }
+        void (async () => {
+            const [pda] = actorPda(programId, payer);
+            try {
+                const acc = await connection.getAccountInfo(pda, "confirmed");
+                if (!cancel) {
+                    setActorAccountExists(Boolean(acc?.data?.length));
+                }
+            } catch {
+                if (!cancel) {
+                    setActorAccountExists(null);
+                }
+            }
+        })();
+        return () => {
+            cancel = true;
+        };
+    }, [connection, programId, payer, prog]);
+
+    const actorPdaBase58 = useMemo(() => {
+        if (!programId || !payer) {
+            return null;
+        }
+        return actorPda(programId, payer)[0].toBase58();
+    }, [programId, payer]);
+
     const trySync = useCallback(
         async (label: string, fn: () => Promise<{ ok: boolean; status: number }>) => {
             const r = await fn();
@@ -390,6 +429,11 @@ export function Etapa1Demo() {
             } catch (e) {
                 const m = e instanceof Error ? e.message : String(e);
                 append(`${key} · ERROR: ${m}`);
+                if (key === "register_actor" && m.includes("already in use")) {
+                    append(
+                        `${key} · tip: la PDA Actor de esta wallet parece ya existir en la red (no se puede volver a «crear»). Use otra wallet o continúe con crear envío (paso 3).`,
+                    );
+                }
             } finally {
                 setBusyKey(null);
             }
@@ -421,6 +465,13 @@ export function Etapa1Demo() {
             async () => {
                 if (!payer || !programId) {
                     throw new Error("Wallet o programa no listo");
+                }
+                const [actorPk] = actorPda(programId, payer);
+                const existing = await connection.getAccountInfo(actorPk, "confirmed");
+                if (existing?.data?.length) {
+                    throw new Error(
+                        `Actor ya registrado: la cuenta ${actorPk.toBase58()} existe en esta red. No repita register_actor con la misma wallet.`,
+                    );
                 }
                 return confirmSerializedTx(
                     connection,
@@ -633,11 +684,14 @@ export function Etapa1Demo() {
         if (!prog) {
             return "Ejecute initialize y espere a cargar ProgramConfig.";
         }
+        if (actorAccountExists === true) {
+            return `Actor ya registrado para esta wallet${actorPdaBase58 ? ` (${actorPdaBase58})` : ""}. Continúe con el paso 3 o conecte otra wallet.`;
+        }
         if (busyKey !== null && busyKey !== "register_actor") {
             return "Espere a que termine la operación en curso.";
         }
         return null;
-    }, [programId, payer, prog, busyKey]);
+    }, [programId, payer, prog, busyKey, actorAccountExists, actorPdaBase58]);
 
     const createShipmentDisabledHint = useMemo(() => {
         if (!programId) {
@@ -679,7 +733,12 @@ export function Etapa1Demo() {
 
     const initDisabled =
         !payer || !programId || busyKey !== null || !!prog;
-    const registerDisabled = !payer || !programId || !prog || busyKey !== null;
+    const registerDisabled =
+        !payer ||
+        !programId ||
+        !prog ||
+        busyKey !== null ||
+        actorAccountExists === true;
     const shipmentDisabled =
         !payer ||
         !programId ||
@@ -849,6 +908,12 @@ export function Etapa1Demo() {
                     {!catalogsLoading && (!apiBaseWellFormed || !apiActorRows) ? (
                         <p className="text-sm text-muted mb-2">
                             Rol: lista local (configure URL API válida o revise backend/DB).
+                        </p>
+                    ) : null}
+                    {actorAccountExists === true && actorPdaBase58 ? (
+                        <p className="badge badge--info mb-2">
+                            Actor ya creado on-chain para esta wallet — PDA{" "}
+                            <code className="mono">{actorPdaBase58}</code>
                         </p>
                     ) : null}
                     <p className="text-sm text-muted etapa1-step-lead mb-2" id="etapa1-step-2-desc">
