@@ -432,6 +432,30 @@ table.data-table {
   line-height: 1.45;
 }
 
+.etapa1-log__body {
+  max-height: 280px;
+  overflow: auto;
+  transition: max-height 0.22s ease, opacity 0.18s ease;
+}
+
+.etapa1-log__body--collapsed {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.etapa1-log__pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.etapa1-log__line--latest {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 /* —— Forms —— */
 .form-group {
   margin-bottom: 1rem;

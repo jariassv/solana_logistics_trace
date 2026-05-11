@@ -173,6 +173,7 @@ export function Etapa1Demo() {
         null,
     );
     const [catalogsLoading, setCatalogsLoading] = useState(false);
+    const [logExpanded, setLogExpanded] = useState(true);
 
     const append = useCallback((msg: string) => {
         setLogs((prev) => [
@@ -1070,15 +1071,38 @@ export function Etapa1Demo() {
             </section>
             </div>
 
-            <section className="card">
-                <div className="card__hd">Registro</div>
-                <div className="card__bd">
-                    <pre
-                        className="mono text-sm"
-                        style={{ maxHeight: 280, overflow: "auto", margin: 0 }}
+            <section className="card etapa1-log-card" aria-labelledby="etapa1-log-h">
+                <div className="card__hd" id="etapa1-log-h">
+                    <span>Registro de actividad</span>
+                    <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setLogExpanded((v) => !v)}
+                        aria-expanded={logExpanded}
+                        aria-controls="etapa1-log-body"
                     >
-                        {logs.length ? logs.join("\n") : "Aún sin eventos."}
-                    </pre>
+                        {logExpanded ? "Ocultar" : "Mostrar"}
+                    </button>
+                </div>
+                <div className="card__bd">
+                    <div
+                        id="etapa1-log-body"
+                        className={`etapa1-log__body${logExpanded ? "" : " etapa1-log__body--collapsed"}`}
+                    >
+                        <pre className="mono text-sm etapa1-log__pre">
+                            {logs.length === 0 ? (
+                                "Aún sin eventos."
+                            ) : (
+                                <>
+                                    {logs.slice(0, -1).join("\n")}
+                                    {logs.length > 1 ? "\n" : ""}
+                                    <span className="etapa1-log__line--latest">
+                                        {logs[logs.length - 1]}
+                                    </span>
+                                </>
+                            )}
+                        </pre>
+                    </div>
                 </div>
             </section>
         </div>
