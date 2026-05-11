@@ -1,0 +1,31 @@
+---
+description: Flujo Git — ramas por componente y merge a main (monorepo logistics_trace)
+alwaysApply: true
+---
+
+# Ramas y `main` (logistics_trace)
+
+Este repo es un **monorepo** con varias “líneas” de trabajo; cada una debe tratarse como **proyecto independiente** en su rama Git, aunque el código viva en el mismo árbol.
+
+## Mapeo ámbito → rama
+
+| Cambios en | Rama Git |
+|------------|----------|
+| `frontend/` | `frontend` |
+| `backend/` | `backend` |
+| `programs/logistics_traceability/` (Anchor) | `solana/anchor` |
+| `infra/`, compose, plantillas `.env` raíz | `infra` |
+| Varios ámbitos | Partir commits por rama o dividir en PRs por ámbito |
+
+## Flujo obligatorio
+
+1. **`git checkout <rama>`** acorde al ámbito (no mezclar en una misma rama commits de frontend y backend salvo excepción acordada).
+2. Implementar y **`git commit`** en esa rama.
+3. Integrar en **`main`**: `git checkout main && git merge <rama>` (o PR equivalente).
+4. **Re-alinear el resto de ramas** con `main` cuando toque seguir trabajando en ellas: `git checkout <otra-rama> && git merge main`.
+
+## Principios
+
+- **`main`** es la línea común integrada; el trabajo nuevo no debe quedar solo en una rama largo tiempo sin merge.
+- Cada rama debe poder **explicarse sola** (mensajes de commit claros, cambios acotados al ámbito).
+- Si un cambio toca dos ámbitos (p. ej. contrato Anchor + cliente TS), priorizar **primero la rama del contrato** (`solana/anchor`), merge a `main`, luego **`frontend`** / **`backend`** consumiendo lo ya integrado.
