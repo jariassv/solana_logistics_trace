@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
     return (
-        <footer className="site-footer">
+        <footer className="site-footer" suppressHydrationWarning>
             <div className="shell">
                 <div className="footer-grid">
                     <div>
@@ -17,10 +17,14 @@ export function SiteFooter() {
                         <h4>Producto</h4>
                         <ul>
                             <li>
-                                <Link href="/panel">Panel</Link>
+                                <Link prefetch={false} href="/panel">
+                                    Panel
+                                </Link>
                             </li>
                             <li>
-                                <Link href="/demo">Demo flujo Etapa 1</Link>
+                                <Link prefetch={false} href="/demo">
+                                    Demo flujo Etapa 1
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -28,7 +32,9 @@ export function SiteFooter() {
                         <h4>Infra</h4>
                         <ul>
                             <li>
-                                <Link href="/sistema">RPC y programa</Link>
+                                <Link prefetch={false} href="/sistema">
+                                    RPC y programa
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -36,10 +42,14 @@ export function SiteFooter() {
                         <h4>Legal</h4>
                         <ul>
                             <li>
-                                <Link href="#">Privacidad</Link>
+                                <Link prefetch={false} href="#">
+                                    Privacidad
+                                </Link>
                             </li>
                             <li>
-                                <Link href="#">Términos</Link>
+                                <Link prefetch={false} href="#">
+                                    Términos
+                                </Link>
                             </li>
                         </ul>
                     </div>

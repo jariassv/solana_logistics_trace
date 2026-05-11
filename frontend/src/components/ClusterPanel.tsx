@@ -45,7 +45,12 @@ export function ClusterPanel({ network, rpcUrl, programId }: ClusterPanelProps) 
     }, []);
 
     return (
-        <section className="card" aria-label="Solana configurada" data-testid="cluster-panel">
+        <section
+            className="card"
+            aria-label="Solana configurada"
+            data-testid="cluster-panel"
+            suppressHydrationWarning
+        >
             <div className="card__hd">
                 <span>Clúster (.env público)</span>
             </div>

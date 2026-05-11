@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
+import { DeferredSiteHeader } from "@/components/layout/SiteHeaderLoader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
-import { SiteHeader } from "@/components/layout/SiteHeader";
 
 import "@/styles/tracesol.css";
 import "./globals.css";
@@ -26,7 +26,7 @@ export default function RootLayout({
     return (
         <html lang="es" className={inter.variable} suppressHydrationWarning>
             <body suppressHydrationWarning>
-                <SiteHeader />
+                <DeferredSiteHeader />
                 {children}
                 <SiteFooter />
             </body>

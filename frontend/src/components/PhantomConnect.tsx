@@ -45,7 +45,11 @@ export function PhantomConnect({ onPublicKeyChange }: PhantomConnectProps) {
     }, []);
 
     return (
-        <div className="space-y-3" data-testid="phantom-connect">
+        <div
+            className="space-y-3"
+            data-testid="phantom-connect"
+            suppressHydrationWarning
+        >
             <h2 className="text-lg font-semibold text-[var(--color-text)]">Phantom wallet</h2>
             {publicKey ? (
                 <>

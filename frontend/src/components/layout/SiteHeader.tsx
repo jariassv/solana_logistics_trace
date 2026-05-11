@@ -38,7 +38,12 @@ export function SiteHeader() {
         <>
             <header className="site-header">
                 <div className="header-inner">
-                    <Link href="/" className="brand" aria-label="TraceSol Logistics inicio">
+                    <Link
+                        href="/"
+                        className="brand"
+                        aria-label="TraceSol Logistics inicio"
+                        prefetch={false}
+                    >
                         <span className="brand__icon" aria-hidden="true">
                             ◇
                         </span>
@@ -49,6 +54,7 @@ export function SiteHeader() {
                             <Link
                                 key={href}
                                 href={href}
+                                prefetch={false}
                                 className={navClass(navReady && pathname === href)}
                             >
                                 {label}
@@ -56,10 +62,18 @@ export function SiteHeader() {
                         ))}
                     </nav>
                     <div className="nav-actions">
-                        <Link className="btn btn--ghost btn--sm" href="/demo">
+                        <Link
+                            prefetch={false}
+                            className="btn btn--ghost btn--sm"
+                            href="/demo"
+                        >
                             Probar flujo
                         </Link>
-                        <Link className="btn btn--primary btn--sm" href="/panel">
+                        <Link
+                            prefetch={false}
+                            className="btn btn--primary btn--sm"
+                            href="/panel"
+                        >
                             Panel
                         </Link>
                         <button
@@ -91,6 +105,7 @@ export function SiteHeader() {
                         <Link
                             key={href}
                             href={href}
+                            prefetch={false}
                             className={navClass(navReady && pathname === href)}
                             onClick={closeMenu}
                         >

@@ -60,7 +60,10 @@ export default function PanelPage() {
                                             <tr>
                                                 <td colSpan={5} className="text-muted">
                                                     Sin datos locales: use el flujo en{" "}
-                                                    <Link href="/demo">Demo Etapa 1</Link> y el
+                                                    <Link prefetch={false} href="/demo">
+                                                        Demo Etapa 1
+                                                    </Link>{" "}
+                                                    y el
                                                     backend sync.
                                                 </td>
                                             </tr>
@@ -81,7 +84,11 @@ export default function PanelPage() {
                 </div>
 
                 <p className="text-sm text-muted mt-2 mb-0">
-                    <Link className="btn btn--secondary btn--sm mt-2" href="/demo">
+                    <Link
+                        prefetch={false}
+                        className="btn btn--secondary btn--sm mt-2"
+                        href="/demo"
+                    >
                         Ir al flujo técnico Etapa 1
                     </Link>
                 </p>

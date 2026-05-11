@@ -22,10 +22,10 @@ export function LandingHome() {
                             <span className="tag">Integracion API-first</span>
                         </div>
                         <div className="hero__cta">
-                            <Link className="btn btn--primary" href="/demo">
+                            <Link prefetch={false} className="btn btn--primary" href="/demo">
                                 Solicitar walkthrough
                             </Link>
-                            <Link className="btn btn--secondary" href="/panel">
+                            <Link prefetch={false} className="btn btn--secondary" href="/panel">
                                 Ver panel ejecutivo
                             </Link>
                         </div>
@@ -50,7 +50,7 @@ export function LandingHome() {
                                 Arquitectura hibrida: confiabilidad on-chain para eventos criticos y
                                 consulta de alta velocidad para operacion diaria, BI y SLA.
                             </p>
-                            <Link className="btn btn--primary btn--block" href="/sistema">
+                            <Link prefetch={false} className="btn btn--primary btn--block" href="/sistema">
                                 Revisar arquitectura y red
                             </Link>
                         </div>
@@ -177,13 +177,13 @@ export function LandingHome() {
                                 </p>
                             </div>
                             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                                <Link className="btn btn--primary" href="/demo">
+                                <Link prefetch={false} className="btn btn--primary" href="/demo">
                                     Demo funcional
                                 </Link>
-                                <Link className="btn btn--secondary" href="/panel">
+                                <Link prefetch={false} className="btn btn--secondary" href="/panel">
                                     Dashboard
                                 </Link>
-                                <Link className="btn btn--ghost" href="/sistema">
+                                <Link prefetch={false} className="btn btn--ghost" href="/sistema">
                                     Arquitectura
                                 </Link>
                             </div>
