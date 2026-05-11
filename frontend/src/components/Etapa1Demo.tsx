@@ -36,66 +36,19 @@ import {
 import { fetchProgramConfig } from "@/lib/solana/program_config";
 import { actorPda, shipmentPda } from "@/lib/solana/pdas";
 import { signTransactionWithPhantom } from "@/lib/wallet/phantom";
+import {
+    adminHints,
+    catalogSourceLabel,
+    healthProbeUserMessage,
+    programStateSummary,
+    recipientFieldValidationError,
+    syncSuccessCopy,
+    userFacingChainError,
+    userMessageForSyncFailure,
+    type ChainStepKey,
+} from "@/lib/panel/etapa1UserMessages";
 
 import { PhantomConnect } from "./PhantomConnect";
-
-/** Mensaje de error de campo o `null` si el valor es una PublicKey válida (no por defecto). */
-type PostChainVerifyRegisterActor = {
-    type: "register_actor";
-    actorsCountBefore: bigint;
-    authority: PublicKey;
-};
-
-async function logRegisterActorOnChainFollowUp(
-    connection: Connection,
-    programId: PublicKey,
-    verify: PostChainVerifyRegisterActor,
-    append: (msg: string) => void,
-): Promise<void> {
-    const fresh = await fetchProgramConfig(connection, programId);
-    if (!fresh) {
-        append("register_actor · aviso: no se pudo releer ProgramConfig tras la tx.");
-        return;
-    }
-    const after = fresh.decoded.actorsRegistered;
-    const before = verify.actorsCountBefore;
-    if (after > before) {
-        append(
-            `register_actor · on-chain: actorsRegistered=${after} (antes ${before}; +${after - before}).`,
-        );
-    } else {
-        append(
-            `register_actor · on-chain: actorsRegistered=${after} (sin cambio respecto a ${before}). Si esperaba un alta nueva, revise la transacción en un explorer.`,
-        );
-    }
-
-    const [pda] = actorPda(programId, verify.authority);
-    const acc = await connection.getAccountInfo(pda, "confirmed");
-    if (acc?.data?.length) {
-        append(
-            `register_actor · cuenta Actor PDA: ${pda.toBase58()} (${acc.data.length} bytes).`,
-        );
-    } else {
-        append(
-            `register_actor · aviso: la PDA Actor ${pda.toBase58()} no tiene datos tras la tx (¿instrucción fallida o cuenta no creada?).`,
-        );
-    }
-}
-
-function recipientFieldValidationError(recipientTrimmed: string): string | null {
-    if (!recipientTrimmed) {
-        return "Indica la PublicKey base58 del destinatario.";
-    }
-    try {
-        const rec = new PublicKey(recipientTrimmed);
-        if (rec.equals(PublicKey.default)) {
-            return "La clave por defecto del sistema no puede usarse como destinatario.";
-        }
-        return null;
-    } catch {
-        return "PublicKey base58 inválida: debe decodificar 32 bytes (suele ser ~43–44 caracteres).";
-    }
-}
 
 async function confirmSerializedTx(
     connection: Connection,
@@ -172,8 +125,11 @@ export function Etapa1Demo() {
     );
 
     const [wallet, setWallet] = useState<string | null>(null);
-    const [logs, setLogs] = useState<string[]>([]);
     const [busyKey, setBusyKey] = useState<string | null>(null);
+    const [notice, setNotice] = useState<{
+        variant: "success" | "error" | "info";
+        text: string;
+    } | null>(null);
 
     const [prog, setProg] =
         useState<Awaited<ReturnType<typeof fetchProgramConfig>>>(null);
@@ -215,16 +171,20 @@ export function Etapa1Demo() {
         null,
     );
     const [catalogsLoading, setCatalogsLoading] = useState(false);
-    const [logExpanded, setLogExpanded] = useState(true);
     /** `true` si la PDA Actor para `payer` ya tiene datos en esta red. */
     const [actorAccountExists, setActorAccountExists] = useState<boolean | null>(null);
 
-    const append = useCallback((msg: string) => {
-        setLogs((prev) => [
-            ...prev.slice(-160),
-            `[${new Date().toISOString()}] ${msg}`,
-        ]);
-    }, []);
+    useEffect(() => {
+        if (!notice) {
+            return;
+        }
+        const id = window.setTimeout(() => {
+            setNotice(null);
+        }, 8000);
+        return () => {
+            window.clearTimeout(id);
+        };
+    }, [notice]);
 
     const refreshConfig = useCallback(async () => {
         if (!programId) {
@@ -305,14 +265,9 @@ export function Etapa1Demo() {
 
         void (async () => {
             try {
-                const onUnknown = (code: string) => {
-                    append(`catálogo: código «${code}» sin mapeo on-chain — omitido`);
-                };
-                // No AbortSignal here: Strict Mode runs effect cleanup before the second mount,
-                // which would abort the first fetch and show NS_BINDING_ABORTED in devtools.
                 const [actorOpts, cpOpts] = await Promise.all([
-                    loadActorRoleSelectOptions(apiBaseTrimmed, onUnknown),
-                    loadCheckpointSelectOptions(apiBaseTrimmed, onUnknown),
+                    loadActorRoleSelectOptions(apiBaseTrimmed),
+                    loadCheckpointSelectOptions(apiBaseTrimmed),
                 ]);
                 if (cancel) {
                     return;
@@ -323,18 +278,21 @@ export function Etapa1Demo() {
                 } else {
                     setApiActorRows(null);
                     setApiCpRows(null);
-                    append(
-                        "Catálogos API: sin filas tras mapear a enums on-chain — usando lista local.",
-                    );
+                    setNotice({
+                        variant: "info",
+                        text: "Se usan listas de referencia locales hasta recibir datos del sistema central.",
+                    });
                 }
-            } catch (e) {
+            } catch {
                 if (cancel) {
                     return;
                 }
                 setApiActorRows(null);
                 setApiCpRows(null);
-                const m = e instanceof Error ? e.message : String(e);
-                append(`Catálogos API: ${m} — usando lista local.`);
+                setNotice({
+                    variant: "info",
+                    text: "No se pudieron cargar las listas de referencia; se usan valores locales.",
+                });
             } finally {
                 if (!cancel) {
                     setCatalogsLoading(false);
@@ -345,7 +303,7 @@ export function Etapa1Demo() {
         return () => {
             cancel = true;
         };
-    }, [apiBaseTrimmed, apiBaseWellFormed, append]);
+    }, [apiBaseTrimmed, apiBaseWellFormed]);
 
     const payer = useMemo(
         () => (wallet ? new PublicKey(wallet) : null),
@@ -382,63 +340,65 @@ export function Etapa1Demo() {
         };
     }, [connection, programId, payer, prog]);
 
-    const actorPdaBase58 = useMemo(() => {
-        if (!programId || !payer) {
-            return null;
-        }
-        return actorPda(programId, payer)[0].toBase58();
-    }, [programId, payer]);
-
     const trySync = useCallback(
-        async (label: string, fn: () => Promise<{ ok: boolean; status: number }>) => {
+        async (
+            entity: "actor" | "shipment" | "checkpoint",
+            fn: () => Promise<{ ok: boolean; status: number; json: unknown }>,
+        ) => {
             const r = await fn();
-            append(`${label} → HTTP ${r.status} ${r.ok ? "OK" : "ERROR"}`);
+            if (r.ok) {
+                setNotice({ variant: "success", text: syncSuccessCopy[entity] });
+            } else {
+                setNotice({
+                    variant: "error",
+                    text: userMessageForSyncFailure(
+                        entity === "actor"
+                            ? "el actor"
+                            : entity === "shipment"
+                              ? "el envío"
+                              : "el evento",
+                        r.status,
+                        r.json,
+                    ),
+                });
+            }
         },
-        [append],
+        [setNotice],
     );
 
     const runStep = useCallback(
         async (
-            key: string,
+            key: ChainStepKey,
             action: () => Promise<string>,
             sync: (sig: string) => Promise<void>,
-            postVerify?: PostChainVerifyRegisterActor,
         ) => {
             if (!programId) {
-                append("Ejecuta este paso después de configurar NEXT_PUBLIC_PROGRAM_ID válido.");
+                setNotice({ variant: "info", text: adminHints.programNotConfigured });
                 return;
             }
             if (!payer) {
-                append("Conecta Phantom (arriba en esta página) para firmar la transacción.");
+                setNotice({ variant: "info", text: adminHints.walletConnect });
                 return;
             }
             setBusyKey(key);
             try {
                 const sig = await action();
-                append(`${key} · tx ${sig}`);
                 await sync(sig);
                 await refreshConfig();
-                if (postVerify?.type === "register_actor") {
-                    await logRegisterActorOnChainFollowUp(
-                        connection,
-                        programId,
-                        postVerify,
-                        append,
-                    );
+                if (key === "initialize") {
+                    setNotice({
+                        variant: "success",
+                        text: "Programa activado correctamente en esta red.",
+                    });
                 }
             } catch (e) {
                 const m = e instanceof Error ? e.message : String(e);
-                append(`${key} · ERROR: ${m}`);
-                if (key === "register_actor" && m.includes("already in use")) {
-                    append(
-                        `${key} · tip: la PDA Actor de esta wallet parece ya existir en la red (no se puede volver a «crear»). Use otra wallet o continúe con crear envío (paso 3).`,
-                    );
-                }
+                setNotice({ variant: "error", text: userFacingChainError(key, m) });
             } finally {
                 setBusyKey(null);
             }
         },
-        [connection, payer, programId, refreshConfig, append],
+        [payer, programId, refreshConfig, setNotice],
     );
 
     const onInitialize = () =>
@@ -469,9 +429,7 @@ export function Etapa1Demo() {
                 const [actorPk] = actorPda(programId, payer);
                 const existing = await connection.getAccountInfo(actorPk, "confirmed");
                 if (existing?.data?.length) {
-                    throw new Error(
-                        `Actor ya registrado: la cuenta ${actorPk.toBase58()} existe en esta red. No repita register_actor con la misma wallet.`,
-                    );
+                    throw new Error("Actor ya registrado para esta cartera en esta red.");
                 }
                 return confirmSerializedTx(
                     connection,
@@ -487,21 +445,17 @@ export function Etapa1Demo() {
             },
             async (sig) => {
                 if (!cfg.apiBaseUrl?.trim()) {
-                    append("sync actor omitido: NEXT_PUBLIC_API_BASE_URL vacío");
+                    setNotice({
+                        variant: "info",
+                        text: "Operación completada en cadena. La replicación al sistema central no está activa.",
+                    });
                     return;
                 }
-                await trySync("sync actor", async () => {
+                await trySync("actor", async () => {
                     const r = await postActorsSync(cfg.apiBaseUrl, { tx_hash: sig });
-                    return { ok: r.ok, status: r.status };
+                    return { ok: r.ok, status: r.status, json: r.json };
                 });
             },
-            prog && payer
-                ? {
-                      type: "register_actor",
-                      actorsCountBefore: prog.decoded.actorsRegistered,
-                      authority: payer,
-                  }
-                : undefined,
         );
 
     const onCreateShipment = () =>
@@ -543,12 +497,15 @@ export function Etapa1Demo() {
             },
             async (sig) => {
                 if (!cfg.apiBaseUrl?.trim()) {
-                    append("sync envío omitido: NEXT_PUBLIC_API_BASE_URL vacío");
+                    setNotice({
+                        variant: "info",
+                        text: "Operación completada en cadena. La replicación al sistema central no está activa.",
+                    });
                     return;
                 }
-                await trySync("sync shipment", async () => {
+                await trySync("shipment", async () => {
                     const r = await postShipmentsSync(cfg.apiBaseUrl, { tx_hash: sig });
-                    return { ok: r.ok, status: r.status };
+                    return { ok: r.ok, status: r.status, json: r.json };
                 });
             },
         );
@@ -609,29 +566,34 @@ export function Etapa1Demo() {
             },
             async (sig) => {
                 if (!cfg.apiBaseUrl?.trim()) {
-                    append("sync checkpoint omitido: NEXT_PUBLIC_API_BASE_URL vacío");
+                    setNotice({
+                        variant: "info",
+                        text: "Operación completada en cadena. La replicación al sistema central no está activa.",
+                    });
                     return;
                 }
-                await trySync("sync checkpoint", async () => {
+                await trySync("checkpoint", async () => {
                     const r = await postCheckpointsSync(cfg.apiBaseUrl, {
                         tx_hash: sig,
                     });
-                    return { ok: r.ok, status: r.status };
+                    return { ok: r.ok, status: r.status, json: r.json };
                 });
             },
         );
 
-    const configSummary = prog
-        ? `actors=${prog.decoded.actorsRegistered} envíos=${prog.decoded.shipmentsCreated} checkpoints=${prog.decoded.checkpointsRecorded}`
-        : programId
-          ? "ProgramConfig no leído o programa sin initialize"
-          : "Configure NEXT_PUBLIC_PROGRAM_ID válido";
+    const configSummary = programStateSummary({
+        hasProgramId: Boolean(programId),
+        actors: prog?.decoded.actorsRegistered ?? null,
+        shipments: prog?.decoded.shipmentsCreated ?? null,
+        checkpoints: prog?.decoded.checkpointsRecorded ?? null,
+        configReadable: Boolean(prog),
+    });
 
     const onProbeBackendHealth = useCallback(async () => {
         if (!backendHealthUrl) {
             setHealthProbeResult({
                 ok: false,
-                text: "Configura NEXT_PUBLIC_API_BASE_URL (p. ej. http://localhost:8000/api/v1) para probar el servidor.",
+                text: "Indique la URL del servicio de datos (incluida la ruta del API) en la configuración del cliente.",
             });
             return;
         }
@@ -641,92 +603,83 @@ export function Etapa1Demo() {
         const t = window.setTimeout(() => ac.abort(), 12_000);
         try {
             const r = await fetchBackendHealth(backendHealthUrl, ac.signal);
-            if (r.ok) {
-                const db =
-                    r.database !== undefined ? ` · base de datos: ${r.database}` : "";
-                const text = `GET /health → HTTP ${r.status} OK${db}`;
-                setHealthProbeResult({ ok: true, text });
-                append(`backend health · HTTP ${r.status} OK${db}`);
-            } else {
-                const text = `Fallo (${r.status || "sin respuesta"}): ${r.hint}`;
-                setHealthProbeResult({ ok: false, text });
-                append(`backend health · ERROR: ${text}`);
-            }
+            const u = healthProbeUserMessage(r);
+            setHealthProbeResult(u);
         } finally {
             window.clearTimeout(t);
             setHealthProbeBusy(false);
         }
-    }, [backendHealthUrl, append]);
+    }, [backendHealthUrl]);
 
     const initializeDisabledHint = useMemo(() => {
         if (!programId) {
-            return "Configure NEXT_PUBLIC_PROGRAM_ID válido en .env.local.";
+            return adminHints.programNotConfigured;
         }
         if (!payer) {
-            return "Conecte Phantom en la sección Wallet para firmar.";
+            return adminHints.walletConnect;
         }
         if (busyKey !== null && busyKey !== "initialize") {
-            return "Espere a que termine la operación en curso.";
+            return adminHints.waitBusy;
         }
         if (prog) {
-            return "ProgramConfig ya existe en esta red.";
+            return adminHints.programAlreadyActive;
         }
         return null;
     }, [programId, payer, busyKey, prog]);
 
     const registerActorDisabledHint = useMemo(() => {
         if (!programId) {
-            return "Configure NEXT_PUBLIC_PROGRAM_ID válido.";
+            return adminHints.programNotConfigured;
         }
         if (!payer) {
-            return "Conecte Phantom para firmar.";
+            return adminHints.walletConnect;
         }
         if (!prog) {
-            return "Ejecute initialize y espere a cargar ProgramConfig.";
+            return adminHints.runInitializeFirst;
         }
         if (actorAccountExists === true) {
-            return `Actor ya registrado para esta wallet${actorPdaBase58 ? ` (${actorPdaBase58})` : ""}. Continúe con el paso 3 o conecte otra wallet.`;
+            return "Esta cartera ya tiene un actor registrado. Continúe con el registro de envíos o utilice otra cartera.";
         }
         if (busyKey !== null && busyKey !== "register_actor") {
-            return "Espere a que termine la operación en curso.";
+            return adminHints.waitBusy;
         }
         return null;
-    }, [programId, payer, prog, busyKey, actorAccountExists, actorPdaBase58]);
+    }, [programId, payer, prog, busyKey, actorAccountExists]);
 
     const createShipmentDisabledHint = useMemo(() => {
         if (!programId) {
-            return "Configure NEXT_PUBLIC_PROGRAM_ID válido.";
+            return adminHints.programNotConfigured;
         }
         if (!payer) {
-            return "Conecte Phantom para firmar.";
+            return adminHints.walletConnect;
         }
         if (!prog) {
-            return "Ejecute initialize y espere a cargar ProgramConfig.";
+            return adminHints.runInitializeFirst;
         }
         if (recipientFieldValidationError(recipient.trim())) {
-            return "Revise el destinatario: PublicKey base58 válida.";
+            return adminHints.recipientInvalid;
         }
         if (busyKey !== null && busyKey !== "create_shipment") {
-            return "Espere a que termine la operación en curso.";
+            return adminHints.waitBusy;
         }
         return null;
     }, [programId, payer, prog, busyKey, recipient]);
 
     const recordCheckpointDisabledHint = useMemo(() => {
         if (!programId) {
-            return "Configure NEXT_PUBLIC_PROGRAM_ID válido.";
+            return adminHints.programNotConfigured;
         }
         if (!payer) {
-            return "Conecte Phantom para firmar.";
+            return adminHints.walletConnect;
         }
         if (!prog) {
-            return "Ejecute initialize y espere a cargar ProgramConfig.";
+            return adminHints.runInitializeFirst;
         }
         if (!shipmentAccount) {
-            return "Cree un envío en el paso 3 para tener la cuenta PDA.";
+            return adminHints.shipmentPdaMissing;
         }
         if (busyKey !== null && busyKey !== "record_checkpoint") {
-            return "Espere a que termine la operación en curso.";
+            return adminHints.waitBusy;
         }
         return null;
     }, [programId, payer, prog, shipmentAccount, busyKey]);
@@ -748,126 +701,130 @@ export function Etapa1Demo() {
     const checkpointDisabled =
         !payer || !programId || !prog || !shipmentAccount || busyKey !== null;
 
+    const actorCatalogFootnote = catalogSourceLabel({
+        loading: catalogsLoading,
+        fromApi: Boolean(apiBaseWellFormed && apiActorRows),
+    });
+    const cpCatalogFootnote = catalogSourceLabel({
+        loading: catalogsLoading,
+        fromApi: Boolean(apiBaseWellFormed && apiCpRows),
+    });
+
     return (
-        <div className="etapa1-demo-root" style={{ display: "grid", gap: "1.5rem" }}>
-            <section className="card">
-                <div className="card__hd">Wallet</div>
-                <div className="card__bd">
-                    <PhantomConnect onPublicKeyChange={setWallet} />
+        <div className="admin-etapa1">
+            {notice ? (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className={`admin-etapa1__toast admin-etapa1__toast--${notice.variant}`}
+                >
+                    {notice.text}
                 </div>
-            </section>
-
-            <section className="card">
-                <div className="card__hd">Conectividad · backend Etapa 1</div>
-                <div className="card__bd">
-                    {!apiBaseTrimmed ? (
-                        <p className="badge badge--danger mb-2">
-                            Sync HTTP desactivado:{" "}
-                            <code className="mono">NEXT_PUBLIC_API_BASE_URL</code> está vacío. Las tx
-                            on-chain pueden funcionar pero no se replicarán a PostgreSQL (POST
-                            …/sync).
-                        </p>
-                    ) : null}
-
-                    <p className="text-sm text-muted mb-1">
-                        <code className="mono">NEXT_PUBLIC_API_BASE_URL</code>
-                    </p>
-                    <p className="mono text-sm mb-2 break-all">
-                        {apiBaseTrimmed || "(no configurado)"}
-                    </p>
-
-                    {apiBaseTrimmed !== "" && !apiBaseWellFormed ? (
-                        <p className="badge badge--warn mb-2">
-                            La URL conviene terminar en <code className="mono">/api/v1</code> (sin
-                            barra final): el cliente pega{" "}
-                            <code className="mono">actors/sync</code> detrás de este valor.
-                        </p>
-                    ) : null}
-
-                    <p className="text-sm text-muted mb-1">Ping diagnóstico (raíz del backend)</p>
-                    <p className="mono text-sm mb-3 break-all">
-                        {backendHealthUrl
-                            ? `GET ${backendHealthUrl}`
-                            : "— (defina NEXT_PUBLIC_API_BASE_URL)"}
-                    </p>
-
-                    <button
-                        type="button"
-                        className="btn btn--ghost btn--sm"
-                        disabled={!backendHealthUrl || healthProbeBusy}
-                        onClick={() => void onProbeBackendHealth()}
-                    >
-                        {healthProbeBusy ? "Probando…" : "Probar backend"}
-                    </button>
-
-                    {healthProbeResult ? (
-                        <p
-                            className={`text-sm mt-2 mb-0 badge ${healthProbeResult.ok ? "badge--success" : "badge--danger"}`}
-                        >
-                            {healthProbeResult.text}
-                        </p>
-                    ) : null}
-                </div>
-            </section>
-
-            {!programId ? (
-                <p className="badge badge--danger">
-                    Falta o es inválido{" "}
-                    <code className="mono">NEXT_PUBLIC_PROGRAM_ID</code> en{" "}
-                    <code className="mono">.env.local</code>.
-                </p>
             ) : null}
 
-            <section className="card">
-                <div className="card__hd">Estado on-chain</div>
-                <div className="card__bd">
-                    <p className="text-sm text-muted mb-0">{configSummary}</p>
-                    <button
-                        type="button"
-                        className="btn btn--ghost btn--sm mt-2"
-                        onClick={() => void refreshConfig()}
-                    >
-                        Refrescar ProgramConfig
-                    </button>
-                    {shipmentAccount ? (
-                        <p className="text-sm mt-2 mb-0">
-                            Última cuenta de envío (PDA):{" "}
-                            <span className="mono">{shipmentAccount.toBase58()}</span>
-                        </p>
+            <div className="admin-etapa1__columns">
+                <aside className="admin-etapa1__rail" aria-label="Resumen y conexiones">
+                    <section className="card admin-etapa1__card">
+                        <div className="card__hd">Cartera firmante</div>
+                        <div className="card__bd">
+                            <PhantomConnect onPublicKeyChange={setWallet} />
+                        </div>
+                    </section>
+
+                    <section className="card admin-etapa1__card">
+                        <div className="card__hd">Servicio de datos</div>
+                        <div className="card__bd">
+                            {!apiBaseTrimmed ? (
+                                <p className="admin-etapa1__inline-alert admin-etapa1__inline-alert--danger">
+                                    {adminHints.apiReplicationOff}
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="admin-etapa1__muted-label">URL del API</p>
+                                    <p className="admin-etapa1__mono-value">{apiBaseTrimmed}</p>
+                                    {apiBaseTrimmed !== "" && !apiBaseWellFormed ? (
+                                        <p className="admin-etapa1__inline-alert admin-etapa1__inline-alert--warn">
+                                            {adminHints.apiUrlMalformed}
+                                        </p>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        className="btn btn--secondary btn--sm mt-2"
+                                        disabled={!backendHealthUrl || healthProbeBusy}
+                                        onClick={() => void onProbeBackendHealth()}
+                                    >
+                                        {healthProbeBusy
+                                            ? "Comprobando…"
+                                            : "Comprobar disponibilidad"}
+                                    </button>
+                                    {healthProbeResult ? (
+                                        <p
+                                            className={`admin-etapa1__health-result admin-etapa1__health-result--${healthProbeResult.ok ? "ok" : "err"}`}
+                                        >
+                                            {healthProbeResult.text}
+                                        </p>
+                                    ) : null}
+                                </>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="card admin-etapa1__card">
+                        <div className="card__hd">Estado en red</div>
+                        <div className="card__bd">
+                            <p className="admin-etapa1__state-line">{configSummary}</p>
+                            <button
+                                type="button"
+                                className="btn btn--ghost btn--sm mt-2"
+                                onClick={() => void refreshConfig()}
+                            >
+                                Actualizar lectura
+                            </button>
+                            {shipmentAccount ? (
+                                <p className="text-sm text-muted mt-3 mb-0">
+                                    Hay un envío registrado en esta sesión; puede añadir eventos
+                                    logísticos.
+                                </p>
+                            ) : null}
+                        </div>
+                    </section>
+                </aside>
+
+                <div
+                    className="admin-etapa1__workspace"
+                    role="region"
+                    aria-label="Operaciones de trazabilidad"
+                >
+                    {!programId ? (
+                        <div className="admin-etapa1__banner admin-etapa1__banner--danger">
+                            Falta configurar el programa de trazabilidad en el despliegue del
+                            cliente.
+                        </div>
                     ) : null}
-                </div>
-            </section>
 
-            <section className="card etapa1-demo-intro" aria-labelledby="etapa1-intro-h">
-                <div className="card__hd" id="etapa1-intro-h">
-                    Flujo de la demo (Etapa 1)
-                </div>
-                <div className="card__bd">
-                    <p className="text-sm text-muted mb-2">
-                        Orden recomendado: transacciones on-chain y, cuando aplique, POST de sync al
-                        backend.
-                    </p>
-                    <ol className="etapa1-demo-flow-ol text-sm text-muted">
-                        <li>Inicializar el programa (una vez por despliegue en la red).</li>
-                        <li>Registrar actor y sincronizar con PostgreSQL.</li>
-                        <li>Crear envío y sincronizar.</li>
-                        <li>Registrar checkpoint y sincronizar.</li>
-                    </ol>
-                </div>
-            </section>
+                    <section className="card admin-etapa1__card" aria-labelledby="etapa1-intro-h">
+                        <div className="card__hd" id="etapa1-intro-h">
+                            Flujo operativo
+                        </div>
+                        <div className="card__bd">
+                            <ol className="admin-etapa1__flow-list">
+                                <li>Activación única del programa en la red.</li>
+                                <li>Alta del actor y replicación al sistema central.</li>
+                                <li>Registro del envío.</li>
+                                <li>Registro del evento logístico asociado al envío.</li>
+                            </ol>
+                        </div>
+                    </section>
 
-            <div
-                className="etapa1-demo-flow"
-                role="region"
-                aria-label="Pasos on-chain y formularios Etapa 1"
-            >
-            <section className="card">
+                    <div className="etapa1-demo-flow">
+            <section className="card admin-etapa1__card">
                 <div className="card__hd" id="etapa1-step-1-init">
-                    1 · Initialize (una vez)
+                    1 · Activación del programa
                 </div>
                 <div className="card__bd">
                     <p className="text-sm text-muted etapa1-step-lead" id="etapa1-step-1-desc">
-                        Inicializa <code className="mono">ProgramConfig</code>. Omite si ya existe.
+                        Ejecución única por despliegue. Si el programa ya está activo, omita este
+                        paso.
                     </p>
                     <button
                         type="button"
@@ -877,7 +834,7 @@ export function Etapa1Demo() {
                         aria-describedby="etapa1-step-1-desc"
                         aria-busy={busyKey === "initialize"}
                     >
-                        {busyKey === "initialize" ? "Enviando…" : "Ejecutar initialize"}
+                        {busyKey === "initialize" ? "Procesando…" : "Activar programa"}
                     </button>
                     {initDisabled && initializeDisabledHint ? (
                         <p className="form-action-hint text-sm text-muted mt-2 mb-0">
@@ -886,41 +843,26 @@ export function Etapa1Demo() {
                     ) : null}
                     {prog ? (
                         <p className="text-sm text-muted mt-2 mb-0">
-                            ProgramConfig ya existe en esta red — no vuelvas a ejecutar initialize.
+                            El programa ya está activo en esta red.
                         </p>
                     ) : null}
                 </div>
             </section>
 
-            <section className="card">
+            <section className="card admin-etapa1__card">
                 <div className="card__hd" id="etapa1-step-2-actor">
-                    2 · Registrar actor
+                    2 · Alta de actor
                 </div>
                 <div className="card__bd">
-                    {catalogsLoading ? (
-                        <p className="text-sm text-muted mb-2">Cargando catálogos desde API…</p>
-                    ) : null}
-                    {!catalogsLoading && apiBaseWellFormed && apiActorRows ? (
-                        <p className="text-sm text-muted mb-2">
-                            Rol: datos desde PostgreSQL vía API.
-                        </p>
-                    ) : null}
-                    {!catalogsLoading && (!apiBaseWellFormed || !apiActorRows) ? (
-                        <p className="text-sm text-muted mb-2">
-                            Rol: lista local (configure URL API válida o revise backend/DB).
-                        </p>
-                    ) : null}
-                    {actorAccountExists === true && actorPdaBase58 ? (
-                        <p className="badge badge--info mb-2">
-                            Actor ya creado on-chain para esta wallet — PDA{" "}
-                            <code className="mono">{actorPdaBase58}</code>
+                    <p className="text-sm text-muted mb-2">{actorCatalogFootnote}</p>
+                    {actorAccountExists === true ? (
+                        <p className="admin-etapa1__pill admin-etapa1__pill--info mb-2">
+                            Identidad ya registrada para esta cartera.
                         </p>
                     ) : null}
                     <p className="text-sm text-muted etapa1-step-lead mb-2" id="etapa1-step-2-desc">
-                        Asocia una wallet autorizada con rol y metadatos; luego se indexa en el
-                        backend con el hash de la transacción. Tras firmar, el registro inferior
-                        mostrará si subió <code className="mono">actorsRegistered</code> y si existe
-                        la cuenta PDA Actor on-chain.
+                        Defina el rol y los datos del participante. Tras confirmar, los datos se
+                        replicarán al sistema central si el servicio está configurado.
                     </p>
                     <div className="form-row">
                         <div className="form-group">
@@ -968,7 +910,7 @@ export function Etapa1Demo() {
                         aria-describedby="etapa1-step-2-desc"
                         aria-busy={busyKey === "register_actor"}
                     >
-                        {busyKey === "register_actor" ? "Enviando…" : "register_actor + sync"}
+                        {busyKey === "register_actor" ? "Procesando…" : "Registrar actor"}
                     </button>
                     {registerDisabled && registerActorDisabledHint ? (
                         <p className="form-action-hint text-sm text-muted mt-2 mb-0">
@@ -978,20 +920,19 @@ export function Etapa1Demo() {
                 </div>
             </section>
 
-            <section className="card">
+            <section className="card admin-etapa1__card">
                 <div className="card__hd" id="etapa1-step-3-ship">
-                    3 · Crear envío
+                    3 · Registro de envío
                 </div>
                 <div className="card__bd">
                     <p className="text-sm text-muted etapa1-step-lead mb-2" id="etapa1-step-3-desc">
-                        El remitente es tu wallet conectada; indica la clave pública del destinatario
-                        en base58.
+                        El remitente es la cartera conectada. Indique la clave pública del
+                        destinatario.
                     </p>
                     <div className="form-group">
-                        <label htmlFor="rec">Destinatario (PublicKey base58)</label>
+                        <label htmlFor="rec">Destinatario</label>
                         <p className="text-sm text-muted mb-1" id="rec-help">
-                            Clave pública en base58 (32 bytes on-chain; longitud típica 43–44
-                            caracteres). Puede ser otra cuenta tuya en localnet.
+                            Clave pública del receptor (formato estándar de la red).
                         </p>
                         <input
                             ref={recipientRef}
@@ -1067,7 +1008,7 @@ export function Etapa1Demo() {
                         aria-describedby="etapa1-step-3-desc"
                         aria-busy={busyKey === "create_shipment"}
                     >
-                        {busyKey === "create_shipment" ? "Enviando…" : "create_shipment + sync"}
+                        {busyKey === "create_shipment" ? "Procesando…" : "Registrar envío"}
                     </button>
                     {shipmentDisabled && createShipmentDisabledHint ? (
                         <p className="form-action-hint text-sm text-muted mt-2 mb-0">
@@ -1077,26 +1018,16 @@ export function Etapa1Demo() {
                 </div>
             </section>
 
-            <section className="card">
+            <section className="card admin-etapa1__card">
                 <div className="card__hd" id="etapa1-step-4-cp">
-                    4 · Registrar checkpoint
+                    4 · Evento logístico
                 </div>
                 <div className="card__bd">
                     <p className="text-sm text-muted etapa1-step-lead" id="etapa1-step-4-desc">
-                        Tras crear el envío, el estado inicial es Created: usa{" "}
-                        <strong>Pickup</strong> para avanzar a InTransit.
+                        Tras registrar el envío, comience normalmente con{" "}
+                        <strong>Recogida (Pickup)</strong> para reflejar el inicio del tránsito.
                     </p>
-                    {!catalogsLoading && apiBaseWellFormed && apiCpRows ? (
-                        <p className="text-sm text-muted mb-2">
-                            Tipo de checkpoint: datos desde PostgreSQL vía API.
-                        </p>
-                    ) : null}
-                    {!catalogsLoading && (!apiBaseWellFormed || !apiCpRows) ? (
-                        <p className="text-sm text-muted mb-2">
-                            Tipo de checkpoint: lista local (configure URL API válida o revise
-                            backend/DB).
-                        </p>
-                    ) : null}
+                    <p className="text-sm text-muted mb-2">{cpCatalogFootnote}</p>
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="cpt">Tipo</label>
@@ -1148,7 +1079,7 @@ export function Etapa1Demo() {
                     </div>
                     <div className="form-row">
                         <div className="form-group">
-                            <label htmlFor="tmp">Temperatura °C (opc., i16)</label>
+                            <label htmlFor="tmp">Temperatura °C (opcional)</label>
                             <input
                                 id="tmp"
                                 className="input mono"
@@ -1157,7 +1088,7 @@ export function Etapa1Demo() {
                             />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="hum">Humedad (opc., u8)</label>
+                            <label htmlFor="hum">Humedad (opcional)</label>
                             <input
                                 id="hum"
                                 className="input mono"
@@ -1167,7 +1098,7 @@ export function Etapa1Demo() {
                         </div>
                     </div>
                     <div className="form-group">
-                        <label htmlFor="meta">Metadata</label>
+                        <label htmlFor="meta">Notas adicionales (JSON)</label>
                         <textarea
                             id="meta"
                             className="textarea"
@@ -1183,9 +1114,7 @@ export function Etapa1Demo() {
                         aria-describedby="etapa1-step-4-desc"
                         aria-busy={busyKey === "record_checkpoint"}
                     >
-                        {busyKey === "record_checkpoint"
-                            ? "Enviando…"
-                            : "record_checkpoint + sync"}
+                        {busyKey === "record_checkpoint" ? "Procesando…" : "Registrar evento"}
                     </button>
                     {checkpointDisabled && recordCheckpointDisabledHint ? (
                         <p className="form-action-hint text-sm text-muted mt-2 mb-0">
@@ -1194,42 +1123,9 @@ export function Etapa1Demo() {
                     ) : null}
                 </div>
             </section>
-            </div>
-
-            <section className="card etapa1-log-card" aria-labelledby="etapa1-log-h">
-                <div className="card__hd" id="etapa1-log-h">
-                    <span>Registro de actividad</span>
-                    <button
-                        type="button"
-                        className="btn btn--ghost btn--sm"
-                        onClick={() => setLogExpanded((v) => !v)}
-                        aria-expanded={logExpanded}
-                        aria-controls="etapa1-log-body"
-                    >
-                        {logExpanded ? "Ocultar" : "Mostrar"}
-                    </button>
-                </div>
-                <div className="card__bd">
-                    <div
-                        id="etapa1-log-body"
-                        className={`etapa1-log__body${logExpanded ? "" : " etapa1-log__body--collapsed"}`}
-                    >
-                        <pre className="mono text-sm etapa1-log__pre">
-                            {logs.length === 0 ? (
-                                "Aún sin eventos."
-                            ) : (
-                                <>
-                                    {logs.slice(0, -1).join("\n")}
-                                    {logs.length > 1 ? "\n" : ""}
-                                    <span className="etapa1-log__line--latest">
-                                        {logs[logs.length - 1]}
-                                    </span>
-                                </>
-                            )}
-                        </pre>
                     </div>
                 </div>
-            </section>
+            </div>
         </div>
     );
 }

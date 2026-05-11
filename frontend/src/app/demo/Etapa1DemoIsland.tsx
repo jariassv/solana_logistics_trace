@@ -12,7 +12,7 @@ const Etapa1DemoLazy = dynamic(
         ssr: false,
         loading: () => (
             <p className="text-muted text-sm" aria-busy="true">
-                Cargando la demo técnica…
+                Cargando el panel de operaciones…
             </p>
         ),
     },
