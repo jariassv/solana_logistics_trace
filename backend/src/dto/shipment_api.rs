@@ -5,28 +5,10 @@ use rocket::serde::Serialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
+use crate::dto::coordinates::resolve_checkpoint_coordinates;
 use crate::dto::metadata::checkpoint_metadata_for_api;
 use crate::repos::checkpoints::CheckpointListRow;
 use crate::repos::shipments::{ShipmentDetailRow, ShipmentListRow};
-
-fn resolve_checkpoint_coordinates(
-    latitude: Option<f64>,
-    longitude: Option<f64>,
-    metadata_json: &Value,
-) -> (Option<f64>, Option<f64>) {
-    if latitude.is_some() || longitude.is_some() {
-        return (latitude, longitude);
-    }
-    let lat = metadata_json
-        .get("lat")
-        .or_else(|| metadata_json.get("latitude"))
-        .and_then(Value::as_f64);
-    let lng = metadata_json
-        .get("lng")
-        .or_else(|| metadata_json.get("longitude"))
-        .and_then(Value::as_f64);
-    (lat, lng)
-}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
