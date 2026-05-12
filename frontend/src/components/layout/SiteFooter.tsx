@@ -17,8 +17,13 @@ export function SiteFooter() {
                         <h4>Producto</h4>
                         <ul>
                             <li>
-                                <Link prefetch={false} href="/panel">
-                                    Panel
+                                <Link prefetch={false} href="/envios">
+                                    Consulta de envíos
+                                </Link>
+                            </li>
+                            <li>
+                                <Link prefetch={false} href="/admin">
+                                    Panel Admin
                                 </Link>
                             </li>
                             <li>
@@ -31,6 +36,11 @@ export function SiteFooter() {
                     <div className="footer-col">
                         <h4>Infra</h4>
                         <ul>
+                            <li>
+                                <Link prefetch={false} href="/consola">
+                                    Consola del sistema
+                                </Link>
+                            </li>
                             <li>
                                 <Link prefetch={false} href="/sistema">
                                     RPC y programa

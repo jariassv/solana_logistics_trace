@@ -165,3 +165,113 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* —— Timeline / consulta pública (tokens + rail minimalista) —— */
+:root {
+  --timeline-spine: url("/imagenes/timeline-spine.svg");
+  --timeline-dot: #64748b;
+  --timeline-dot-current: #2563eb;
+  --timeline-dot-past: #94a3b8;
+  --timeline-rail-bg: rgba(248, 250, 252, 0.9);
+}
+
+.shipment-rail {
+  position: relative;
+  padding: 1rem 0.5rem 0.75rem;
+  border-radius: 12px;
+  background: var(--timeline-rail-bg);
+  border: 1px solid var(--color-border, #e5e7eb);
+  overflow-x: auto;
+}
+
+.shipment-rail__track {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 2.1rem;
+  height: 4px;
+  background-image: var(--timeline-spine);
+  background-size: 100% 100%;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.shipment-rail__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.5rem;
+  min-width: min(100%, 720px);
+  justify-content: space-between;
+}
+
+.shipment-rail__step {
+  position: relative;
+  flex: 1;
+  min-width: 4.5rem;
+  text-align: center;
+  padding: 0 0.15rem;
+  color: var(--color-text-muted, #6b7280);
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.shipment-rail__dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 0.35rem auto 0.5rem;
+  border-radius: 999px;
+  background: var(--timeline-dot);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.5);
+}
+
+.shipment-rail__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.shipment-rail__code {
+  display: block;
+  font-size: 0.65rem;
+  opacity: 0.75;
+  margin-top: 0.15rem;
+}
+
+.shipment-rail__step.is-past .shipment-rail__dot {
+  background: var(--timeline-dot-past);
+}
+
+.shipment-rail__step.is-future .shipment-rail__dot {
+  opacity: 0.45;
+}
+
+.shipment-rail__step.is-muted {
+  opacity: 0.35;
+}
+
+.shipment-rail__step.is-current {
+  color: var(--color-text, #111827);
+  transform: translateY(-2px) scale(1.03);
+  z-index: 1;
+}
+
+.shipment-rail__step.is-current .shipment-rail__dot {
+  background: var(--timeline-dot-current);
+  box-shadow:
+    0 0 0 2px rgba(37, 99, 235, 0.25),
+    0 8px 20px rgba(37, 99, 235, 0.2);
+  width: 14px;
+  height: 14px;
+}
+
+.shipment-rail__terminal {
+  padding-left: 0.25rem;
+}
+

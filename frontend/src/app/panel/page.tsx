@@ -87,6 +87,13 @@ export default function PanelPage() {
                     <Link
                         prefetch={false}
                         className="btn btn--secondary btn--sm mt-2"
+                        href="/admin"
+                    >
+                        Panel Admin por rol
+                    </Link>{" "}
+                    <Link
+                        prefetch={false}
+                        className="btn btn--secondary btn--sm mt-2"
                         href="/demo"
                     >
                         Ir al flujo técnico Etapa 1

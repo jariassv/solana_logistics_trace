@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import {
-    canAccessOnChainOperationsPanel,
-    canOpenShipmentTracker,
-    isKnownActorRole,
-} from "@/lib/panel/capabilities";
+import { canAccessOnChainOperationsPanel, isKnownActorRole } from "@/lib/panel/capabilities";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 function linkClass(active: boolean): string {
@@ -16,12 +12,11 @@ function linkClass(active: boolean): string {
 
 export function PanelEtapa2Rail() {
     const pathname = usePathname();
-    const { wallet, role, actorLoading } = useWalletSession();
+    const { role, actorLoading } = useWalletSession();
 
-    const enviosActive = pathname.startsWith("/panel/envios");
-    const panelRootActive = pathname === "/panel";
+    const enviosActive = pathname.startsWith("/envios");
+    const adminActive = pathname.startsWith("/admin");
     const showOps = canAccessOnChainOperationsPanel(role);
-    const enviosEnabled = canOpenShipmentTracker(Boolean(wallet));
 
     return (
         <aside className="panel-etapa2-rail" aria-label="Navegación del panel">
@@ -32,15 +27,10 @@ export function PanelEtapa2Rail() {
                 </p>
             )}
             <nav className="panel-etapa2-rail__nav">
-                <Link prefetch={false} className={linkClass(panelRootActive)} href="/panel">
-                    Resumen
+                <Link prefetch={false} className={linkClass(adminActive)} href="/admin">
+                    Admin
                 </Link>
-                <Link
-                    prefetch={false}
-                    className={`${linkClass(enviosActive)}${!enviosEnabled ? " panel-etapa2-rail__link--muted" : ""}`}
-                    href="/panel/envios"
-                    title={!enviosEnabled ? "Conecta la wallet en el encabezado" : undefined}
-                >
+                <Link prefetch={false} className={linkClass(enviosActive)} href="/envios">
                     Envíos
                 </Link>
                 {showOps && (
@@ -48,8 +38,11 @@ export function PanelEtapa2Rail() {
                         Operaciones on-chain
                     </Link>
                 )}
+                <Link prefetch={false} className={linkClass(pathname.startsWith("/consola"))} href="/consola">
+                    Consola
+                </Link>
                 <Link prefetch={false} className={linkClass(pathname.startsWith("/sistema"))} href="/sistema">
-                    Sistema
+                    Red (.env)
                 </Link>
             </nav>
         </aside>

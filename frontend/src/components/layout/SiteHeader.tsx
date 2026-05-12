@@ -4,10 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
-    canOpenShipmentTracker,
-    canUseOperationsDemoNav,
-} from "@/lib/panel/capabilities";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 function shortPubkey(pk: string, head = 4, tail = 4): string {
@@ -26,33 +22,15 @@ type NavSpec = {
 
 const NAV_SPECS: NavSpec[] = [
     { href: "/", label: "Inicio", enabled: () => true, disabledTitle: () => "" },
-    { href: "/panel", label: "Panel", enabled: () => true, disabledTitle: () => "" },
+    { href: "/envios", label: "Envíos", enabled: () => true, disabledTitle: () => "" },
+    { href: "/registro", label: "Registro", enabled: () => true, disabledTitle: () => "" },
     {
-        href: "/panel/envios",
-        label: "Envíos",
-        enabled: ({ wallet }) => canOpenShipmentTracker(Boolean(wallet)),
-        disabledTitle: () => "Conecta la wallet con el botón superior",
+        href: "/admin",
+        label: "Admin",
+        enabled: ({ wallet }) => Boolean(wallet),
+        disabledTitle: () => "Conecte la wallet con el botón superior",
     },
-    {
-        href: "/demo",
-        label: "Operaciones",
-        enabled: ({ wallet, role }) => canUseOperationsDemoNav(Boolean(wallet), role),
-        disabledTitle: ({ wallet, role }) => {
-            if (!wallet) {
-                return "Conecta la wallet con el botón superior";
-            }
-            if (role === "Inspector") {
-                return "Rol Inspector: solo consulta (sin operaciones on-chain)";
-            }
-            return "No disponible";
-        },
-    },
-    {
-        href: "/sistema",
-        label: "Sistema",
-        enabled: () => true,
-        disabledTitle: () => "",
-    },
+    { href: "/consola", label: "Consola", enabled: () => true, disabledTitle: () => "" },
 ];
 
 function navClass(active: boolean, disabled: boolean): string {

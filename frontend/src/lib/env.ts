@@ -15,6 +15,12 @@ export function parseProgramPublicKey(programIdRaw: string | undefined): PublicK
     }
 }
 
+/** Origen HTTP del backend (p. ej. `http://127.0.0.1:8001`) a partir de `NEXT_PUBLIC_API_BASE_URL`. */
+export function apiOriginFromApiBase(apiBaseUrl: string): string {
+    const trimmed = apiBaseUrl.replace(/\/+$/, "");
+    return trimmed.replace(/\/api\/v1\/?$/i, "") || trimmed;
+}
+
 export function getPublicConfig() {
     const programId = process.env.NEXT_PUBLIC_PROGRAM_ID ?? "";
     return {

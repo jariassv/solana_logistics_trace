@@ -21,12 +21,18 @@ function statusBadgeClass(status: string): string {
 export type ShipmentTrackerProps = {
     apiBaseUrl: string;
     wallet: string;
+    /** Genera enlace al detalle (por defecto `/envios/:id?wallet=`). */
+    detailHref?: (shipmentId: string, rowWallet: string) => string;
 };
 
-export function ShipmentTracker({ apiBaseUrl, wallet }: ShipmentTrackerProps) {
+export function ShipmentTracker({ apiBaseUrl, wallet, detailHref }: ShipmentTrackerProps) {
     const [rows, setRows] = useState<ShipmentListItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+
+    const hrefFor =
+        detailHref ??
+        ((id: string, w: string) => `/envios/${encodeURIComponent(id)}?wallet=${encodeURIComponent(w)}`);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -91,7 +97,7 @@ export function ShipmentTracker({ apiBaseUrl, wallet }: ShipmentTrackerProps) {
                                         <Link
                                             prefetch={false}
                                             className="btn btn--ghost btn--sm"
-                                            href={`/panel/envios/${encodeURIComponent(r.shipmentId)}`}
+                                            href={hrefFor(r.shipmentId, wallet)}
                                         >
                                             Ver
                                         </Link>
