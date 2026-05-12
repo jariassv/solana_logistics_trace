@@ -6,9 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { CheckpointTimeline } from "@/components/panel/CheckpointTimeline";
-import { PhantomConnect } from "@/components/PhantomConnect";
 import { getShipmentDetail, type ShipmentDetail } from "@/lib/api/shipments";
 import { getPublicConfig } from "@/lib/env";
+import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 const MapViewLazy = dynamic(
     () => import("@/components/panel/MapView").then((m) => ({ default: m.MapView })),
@@ -26,7 +26,7 @@ export default function ShipmentDetailPage() {
     const params = useParams();
     const shipmentId = typeof params?.shipmentId === "string" ? params.shipmentId : "";
     const { apiBaseUrl } = getPublicConfig();
-    const [wallet, setWallet] = useState<string | null>(null);
+    const { wallet } = useWalletSession();
     const [detail, setDetail] = useState<ShipmentDetail | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -54,7 +54,7 @@ export default function ShipmentDetailPage() {
     }, [apiBaseUrl, shipmentId, wallet]);
 
     useEffect(() => {
-        void load();
+        void Promise.resolve().then(() => void load());
     }, [load]);
 
     return (
@@ -68,16 +68,15 @@ export default function ShipmentDetailPage() {
                 <h1 className="page-title">Detalle de envío</h1>
                 <p className="page-sub mono">{shipmentId}</p>
 
-                <div className="card">
-                    <div className="card__hd">Wallet</div>
-                    <div className="card__bd">
-                        <PhantomConnect onPublicKeyChange={setWallet} />
-                    </div>
-                </div>
-
                 {!apiBaseUrl && (
                     <p className="text-muted text-sm mt-2" role="status">
                         Configura <code className="mono">NEXT_PUBLIC_API_BASE_URL</code>.
+                    </p>
+                )}
+
+                {apiBaseUrl && !wallet && (
+                    <p className="text-muted text-sm mt-2" role="status">
+                        Conecta la wallet en el encabezado para cargar el detalle.
                     </p>
                 )}
 

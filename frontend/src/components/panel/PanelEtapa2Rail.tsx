@@ -2,16 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
 
-import { getActorMe } from "@/lib/api/shipments";
 import {
     canAccessOnChainOperationsPanel,
     canOpenShipmentTracker,
     isKnownActorRole,
 } from "@/lib/panel/capabilities";
-import { getPublicConfig } from "@/lib/env";
-import { getPhantom } from "@/lib/wallet/phantom";
+import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 function linkClass(active: boolean): string {
     return `panel-etapa2-rail__link${active ? " is-active" : ""}`;
@@ -19,48 +16,7 @@ function linkClass(active: boolean): string {
 
 export function PanelEtapa2Rail() {
     const pathname = usePathname();
-    const { apiBaseUrl } = getPublicConfig();
-    const [wallet, setWallet] = useState<string | null>(null);
-    const [role, setRole] = useState<string | null>(null);
-
-    const trySilentWallet = useCallback(async () => {
-        const p = getPhantom();
-        if (!p?.isPhantom || !p.connect) {
-            return;
-        }
-        try {
-            const out = await p.connect({ onlyIfTrusted: true });
-            setWallet(out.publicKey.toBase58());
-        } catch {
-            /* sin sesión previa */
-        }
-    }, []);
-
-    useEffect(() => {
-        void trySilentWallet();
-    }, [trySilentWallet]);
-
-    useEffect(() => {
-        if (!apiBaseUrl || !wallet) {
-            setRole(null);
-            return;
-        }
-        let cancelled = false;
-        void (async () => {
-            const res = await getActorMe(apiBaseUrl, wallet);
-            if (cancelled) {
-                return;
-            }
-            if (res.ok) {
-                setRole(res.data.role);
-            } else {
-                setRole(null);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [apiBaseUrl, wallet]);
+    const { wallet, role, actorLoading } = useWalletSession();
 
     const enviosActive = pathname.startsWith("/panel/envios");
     const panelRootActive = pathname === "/panel";
@@ -70,7 +26,7 @@ export function PanelEtapa2Rail() {
     return (
         <aside className="panel-etapa2-rail" aria-label="Navegación del panel">
             <div className="panel-etapa2-rail__brand">Panel operativo</div>
-            {role && isKnownActorRole(role) && (
+            {!actorLoading && role && isKnownActorRole(role) && (
                 <p className="panel-etapa2-rail__role text-xs text-muted mb-2 mt-0" data-testid="panel-role-badge">
                     Rol: <strong>{role}</strong>
                 </p>
@@ -83,7 +39,7 @@ export function PanelEtapa2Rail() {
                     prefetch={false}
                     className={`${linkClass(enviosActive)}${!enviosEnabled ? " panel-etapa2-rail__link--muted" : ""}`}
                     href="/panel/envios"
-                    title={!enviosEnabled ? "Conecta Phantom para consultar envíos" : undefined}
+                    title={!enviosEnabled ? "Conecta la wallet en el encabezado" : undefined}
                 >
                     Envíos
                 </Link>

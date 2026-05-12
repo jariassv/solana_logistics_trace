@@ -1,5 +1,5 @@
 import { ClusterPanel } from "@/components/ClusterPanel";
-import { PhantomConnect } from "@/components/PhantomConnect";
+import { SistemaWalletNote } from "@/components/wallet/SistemaWalletNote";
 import { getPublicConfig } from "@/lib/env";
 
 export default function SistemaPage() {
@@ -20,9 +20,9 @@ export default function SistemaPage() {
                         programId={cfg.programId}
                     />
                     <section className="card">
-                        <div className="card__hd">Wallet de prueba</div>
+                        <div className="card__hd">Wallet</div>
                         <div className="card__bd">
-                            <PhantomConnect />
+                            <SistemaWalletNote />
                         </div>
                     </section>
                 </div>

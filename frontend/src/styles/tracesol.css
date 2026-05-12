@@ -137,16 +137,72 @@ img {
   font-weight: 500;
 }
 
+.nav-main__link--disabled {
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .nav-main a:hover,
 .nav-main a.is-active {
   color: var(--color-primary);
   background: var(--color-accent-bg);
 }
 
+.nav-main a.is-active.nav-main__link--disabled {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
 .nav-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.header-wallet {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-wallet__connected {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.header-wallet__pk {
+  font-size: 0.8rem;
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-wallet__role {
+  white-space: nowrap;
+}
+
+.header-wallet__error {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--color-danger, #b91c1c);
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-toggle {
@@ -212,6 +268,15 @@ img {
 .mobile-nav a.is-active {
   background: var(--color-accent-bg);
   color: var(--color-primary);
+}
+
+.mobile-nav__panel span.nav-main__link--disabled {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* —— Buttons —— */

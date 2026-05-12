@@ -48,7 +48,7 @@ export function ShipmentTracker({ apiBaseUrl, wallet }: ShipmentTrackerProps) {
     }, [apiBaseUrl, wallet]);
 
     useEffect(() => {
-        void load();
+        void Promise.resolve().then(() => void load());
     }, [load]);
 
     return (
