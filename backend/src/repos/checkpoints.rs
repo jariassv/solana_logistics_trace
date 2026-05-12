@@ -1,6 +1,7 @@
 use serde_json::Value;
+use sqlx::postgres::PgRow;
 use sqlx::types::Json;
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{Error as SqlxError, FromRow, PgPool, Postgres, Row, Transaction};
 use uuid::Uuid;
 
 pub async fn checkpoint_id_by_tx_hash(
@@ -21,6 +22,64 @@ pub async fn shipment_db_id_by_on_chain_id(
         .bind(on_chain_shipment_id)
         .fetch_optional(pool)
         .await
+}
+
+/// Row for ordered checkpoint lists (Etapa 2 GET).
+#[derive(Debug)]
+pub struct CheckpointListRow {
+    pub id: i64,
+    pub on_chain_checkpoint_id: i64,
+    pub checkpoint_type: String,
+    pub occurred_at: chrono::DateTime<chrono::Utc>,
+    pub location: Option<String>,
+    pub actor_wallet: String,
+    pub temperature_centi: Option<i16>,
+    pub humidity: Option<i16>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub metadata_json: Option<Json<Value>>,
+    pub tx_hash: String,
+}
+
+impl<'r> FromRow<'r, PgRow> for CheckpointListRow {
+    fn from_row(row: &'r PgRow) -> Result<Self, SqlxError> {
+        Ok(CheckpointListRow {
+            id: row.try_get("id")?,
+            on_chain_checkpoint_id: row.try_get("on_chain_checkpoint_id")?,
+            checkpoint_type: row.try_get("checkpoint_type")?,
+            occurred_at: row.try_get("occurred_at")?,
+            location: row.try_get("location")?,
+            actor_wallet: row.try_get("actor_wallet")?,
+            temperature_centi: row.try_get("temperature_centi")?,
+            humidity: row.try_get("humidity")?,
+            latitude: row.try_get("latitude")?,
+            longitude: row.try_get("longitude")?,
+            metadata_json: row.try_get("metadata_json")?,
+            tx_hash: row.try_get("tx_hash")?,
+        })
+    }
+}
+
+/// Checkpoints for a shipment when `wallet` is sender or recipient (§8.2).
+pub async fn list_for_shipment_participant(
+    pool: &PgPool,
+    shipment_id: Uuid,
+    wallet: &str,
+) -> Result<Vec<CheckpointListRow>, sqlx::Error> {
+    sqlx::query_as::<_, CheckpointListRow>(
+        r#"SELECT c.id, c.on_chain_checkpoint_id, c.checkpoint_type, c.occurred_at, c.location,
+                  c.actor_wallet, c.temperature_centi, c.humidity, c.latitude, c.longitude,
+                  c.metadata_json, c.tx_hash
+           FROM checkpoints c
+           INNER JOIN shipments s ON s.id = c.shipment_id
+           WHERE c.shipment_id = $1
+             AND (s.sender_wallet = $2 OR s.recipient_wallet = $2)
+           ORDER BY c.occurred_at ASC"#,
+    )
+    .bind(shipment_id)
+    .bind(wallet)
+    .fetch_all(pool)
+    .await
 }
 
 #[allow(clippy::too_many_arguments)]
