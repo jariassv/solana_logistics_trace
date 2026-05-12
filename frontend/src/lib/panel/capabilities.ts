@@ -19,6 +19,14 @@ export function canAccessOnChainOperationsPanel(role: string | null): boolean {
     return role !== "Inspector";
 }
 
+/** Demo Etapa 1 / operaciones on-chain: wallet + no Inspector cuando el rol es conocido. */
+export function canUseOperationsDemoNav(
+    walletConnected: boolean,
+    role: string | null,
+): boolean {
+    return walletConnected && canAccessOnChainOperationsPanel(role);
+}
+
 /** Enlaces de envíos requieren wallet conectada (query `wallet` obligatoria en API). */
 export function canOpenShipmentTracker(walletConnected: boolean): boolean {
     return walletConnected;

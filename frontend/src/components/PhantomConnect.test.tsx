@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PhantomConnect } from "./PhantomConnect";
+import { WalletSessionProvider } from "@/lib/wallet/WalletSessionContext";
+
+function renderWithSession(ui: ReactElement) {
+    return render(<WalletSessionProvider>{ui}</WalletSessionProvider>);
+}
 
 describe("PhantomConnect", () => {
     type PhantomLikeWallet = NonNullable<(typeof window)["solana"]>;
@@ -37,14 +43,17 @@ describe("PhantomConnect", () => {
             writable: true,
             value: undefined,
         });
-        render(<PhantomConnect />);
+        renderWithSession(<PhantomConnect />);
         expect(screen.getByTestId("phantom-connect-button")).toBeInTheDocument();
     });
 
     it("connects via mocked window.solana", async () => {
         const pk = "DemoPubKey11111111111111111111111111111111";
-        const connect = vi.fn().mockResolvedValue({
-            publicKey: { toBase58: () => pk },
+        const connect = vi.fn(async (opts?: { onlyIfTrusted?: boolean }) => {
+            if (opts?.onlyIfTrusted) {
+                throw new Error("skip silent session");
+            }
+            return { publicKey: { toBase58: () => pk } };
         });
         const disconnect = vi.fn().mockResolvedValue(undefined);
         Object.defineProperty(window, "solana", {
@@ -52,12 +61,11 @@ describe("PhantomConnect", () => {
             writable: true,
             value: { isPhantom: true, connect, disconnect },
         });
-        render(<PhantomConnect />);
+        renderWithSession(<PhantomConnect />);
         fireEvent.click(screen.getByTestId("phantom-connect-button"));
         await waitFor(() =>
             expect(screen.getByTestId("wallet-pubkey")).toHaveTextContent(pk),
         );
-        expect(connect).toHaveBeenCalledTimes(1);
         expect(connect).toHaveBeenCalledWith({ onlyIfTrusted: false });
     });
 
@@ -67,7 +75,7 @@ describe("PhantomConnect", () => {
             writable: true,
             value: {},
         });
-        render(<PhantomConnect />);
+        renderWithSession(<PhantomConnect />);
         fireEvent.click(screen.getByTestId("phantom-connect-button"));
         await waitFor(() =>
             expect(screen.getByTestId("phantom-error")).toHaveTextContent(

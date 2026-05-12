@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
+import { AppProviders } from "@/components/providers/AppProviders";
 import { DeferredSiteHeader } from "@/components/layout/SiteHeaderLoader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 
@@ -26,9 +27,11 @@ export default function RootLayout({
     return (
         <html lang="es" className={inter.variable} suppressHydrationWarning>
             <body suppressHydrationWarning>
-                <DeferredSiteHeader />
-                {children}
-                <SiteFooter />
+                <AppProviders>
+                    <DeferredSiteHeader />
+                    {children}
+                    <SiteFooter />
+                </AppProviders>
             </body>
         </html>
     );

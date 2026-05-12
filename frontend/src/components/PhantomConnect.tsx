@@ -1,48 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
-import { formatPhantomConnectError, getPhantom } from "@/lib/wallet/phantom";
+import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 export type PhantomConnectProps = {
     /** Se invoca cuando cambia la clave tras connect/disconnect */
     onPublicKeyChange?: (address: string | null) => void;
 };
 
-/** Conector Phantom mínimo (Etapa 0–1 — el backend no firma nunca). */
+/**
+ * Bloque informativo de wallet: delega en la sesión global (mismo flujo que el header).
+ */
 export function PhantomConnect({ onPublicKeyChange }: PhantomConnectProps) {
-    const [publicKey, setPublicKey] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const { wallet, connectError, connect, disconnect } = useWalletSession();
 
     useEffect(() => {
-        onPublicKeyChange?.(publicKey);
-    }, [publicKey, onPublicKeyChange]);
+        onPublicKeyChange?.(wallet);
+    }, [wallet, onPublicKeyChange]);
 
     const onConnect = useCallback(async () => {
-        setError(null);
-        const p = getPhantom();
-        if (!p?.isPhantom) {
-            setError(
-                "Phantom no encontrado. Instala la extensión y recarga; en Firefox usa phantom.app.",
-            );
-            return;
-        }
-        try {
-            const out = await p.connect({ onlyIfTrusted: false });
-            setPublicKey(out.publicKey.toBase58());
-        } catch (e) {
-            setError(formatPhantomConnectError(e));
-        }
-    }, []);
+        await connect();
+    }, [connect]);
 
     const onDisconnect = useCallback(async () => {
-        setError(null);
-        const p = getPhantom();
-        if (p?.disconnect) {
-            await p.disconnect().catch(() => undefined);
-        }
-        setPublicKey(null);
-    }, []);
+        await disconnect();
+    }, [disconnect]);
 
     return (
         <div
@@ -51,19 +34,22 @@ export function PhantomConnect({ onPublicKeyChange }: PhantomConnectProps) {
             suppressHydrationWarning
         >
             <h2 className="text-lg font-semibold text-[var(--color-text)]">Phantom wallet</h2>
-            {publicKey ? (
+            {wallet ? (
                 <>
                     <p className="text-sm text-muted">Clave conectada:</p>
                     <p
                         className="mono break-all text-sm text-[var(--color-text)]"
                         data-testid="wallet-pubkey"
                     >
-                        {publicKey}
+                        {wallet}
+                    </p>
+                    <p className="text-xs text-muted mb-0">
+                        También puedes desconectar desde la barra superior.
                     </p>
                     <button
                         type="button"
                         className="btn btn--ghost"
-                        onClick={onDisconnect}
+                        onClick={() => void onDisconnect()}
                     >
                         Desconectar
                     </button>
@@ -71,16 +57,21 @@ export function PhantomConnect({ onPublicKeyChange }: PhantomConnectProps) {
             ) : (
                 <button
                     type="button"
-                    onClick={onConnect}
+                    onClick={() => void onConnect()}
                     className="btn btn--primary"
                     data-testid="phantom-connect-button"
                 >
                     Conectar Phantom
                 </button>
             )}
-            {error ? (
-                <p role="alert" className="text-sm" style={{ color: "var(--color-danger)" }} data-testid="phantom-error">
-                    {error}
+            {connectError ? (
+                <p
+                    role="alert"
+                    className="text-sm"
+                    style={{ color: "var(--color-danger)" }}
+                    data-testid="phantom-error"
+                >
+                    {connectError}
                 </p>
             ) : null}
         </div>
