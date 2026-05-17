@@ -34,6 +34,11 @@ export function canRecordCheckpoint(role: string | null): boolean {
     return role === "Carrier" || role === "Hub" || role === "Recipient";
 }
 
+/** Carrier, Hub e Inspector ven el inventario operativo completo en el API (§8.2). */
+export function seesOperationalShipmentInventory(role: string | null): boolean {
+    return role === "Carrier" || role === "Hub" || role === "Inspector";
+}
+
 /** Enlaces de envíos requieren wallet conectada (query `wallet` obligatoria en API). */
 export function canOpenShipmentTracker(walletConnected: boolean): boolean {
     return walletConnected;

@@ -6,6 +6,7 @@ import {
     canUseChainOperationsNav,
     isKnownActorRole,
     roleDisplayName,
+    seesOperationalShipmentInventory,
 } from "./capabilities";
 
 describe("panel capabilities", () => {
@@ -32,6 +33,14 @@ describe("panel capabilities", () => {
         expect(canRecordCheckpoint("Recipient")).toBe(true);
         expect(canRecordCheckpoint("Sender")).toBe(false);
         expect(canRecordCheckpoint("Inspector")).toBe(false);
+    });
+
+    it("grants operational inventory visibility to Carrier, Hub, and Inspector", () => {
+        expect(seesOperationalShipmentInventory("Carrier")).toBe(true);
+        expect(seesOperationalShipmentInventory("Hub")).toBe(true);
+        expect(seesOperationalShipmentInventory("Inspector")).toBe(true);
+        expect(seesOperationalShipmentInventory("Sender")).toBe(false);
+        expect(seesOperationalShipmentInventory("Recipient")).toBe(false);
     });
 
     it("formats role display name", () => {

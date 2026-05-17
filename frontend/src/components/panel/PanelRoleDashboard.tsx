@@ -5,7 +5,11 @@ import { useMemo } from "react";
 
 import { ShipmentTracker } from "@/components/panel/ShipmentTracker";
 import { useShipmentsList } from "@/lib/api/useShipmentsList";
-import { canSenderRegisterShipments } from "@/lib/panel/capabilities";
+import {
+    canRecordCheckpoint,
+    canSenderRegisterShipments,
+    seesOperationalShipmentInventory,
+} from "@/lib/panel/capabilities";
 import { getPublicConfig } from "@/lib/env";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
@@ -35,12 +39,12 @@ function roleHeadline(
         case "Carrier":
             return {
                 title: "Dashboard — Transporte",
-                sub: "Visibilidad de envíos donde participa su cartera y registro de avances en cadena.",
+                sub: "Inventario operativo de envíos y registro de checkpoints desde el centro de administración.",
             };
         case "Hub":
             return {
                 title: "Dashboard — Hub",
-                sub: "Envíos y eventos logísticos vinculados a su nodo.",
+                sub: "Inventario operativo de envíos y eventos logísticos en su nodo.",
             };
         case "Recipient":
             return {
@@ -50,7 +54,7 @@ function roleHeadline(
         case "Inspector":
             return {
                 title: "Dashboard — Inspección",
-                sub: "Vista de auditoría (solo lectura) sobre envíos autorizados para su consulta.",
+                sub: "Vista de auditoría (solo lectura) sobre el inventario operativo de envíos.",
             };
         default:
             return {
@@ -72,6 +76,8 @@ export function PanelRoleDashboard() {
 
     const { title, sub } = roleHeadline(role, actorLoading, wallet);
     const showSenderCta = canSenderRegisterShipments(role);
+    const showRecordCta = canRecordCheckpoint(role);
+    const operationalInventory = seesOperationalShipmentInventory(role);
 
     const total = rows?.length ?? null;
     const delivered = rows?.filter((r) => r.status === "Delivered").length ?? null;
@@ -118,7 +124,11 @@ export function PanelRoleDashboard() {
                 <div className="kpi">
                     <div className="kpi__label">Envíos visibles</div>
                     <div className="kpi__value">{kpiTotal}</div>
-                    <div className="kpi__meta">Listado filtrado por su cartera (API)</div>
+                    <div className="kpi__meta">
+                        {operationalInventory
+                            ? "Inventario operativo (API)"
+                            : "Listado filtrado por su cartera (API)"}
+                    </div>
                 </div>
                 <div className="kpi">
                     <div className="kpi__label">En curso</div>
@@ -143,13 +153,24 @@ export function PanelRoleDashboard() {
                 </p>
             )}
 
+            {showRecordCta && wallet && cfg.apiBaseUrl?.trim() && !actorLoading && (
+                <p className="mt-2 mb-0">
+                    <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin">
+                        Registrar eventos
+                    </Link>
+                    <span className="text-sm text-muted ms-2">
+                        Centro de administración: listado, detalle y checkpoints on-chain.
+                    </span>
+                </p>
+            )}
+
             {wallet && cfg.apiBaseUrl?.trim() && (
                 <div className="mt-2">
                     <ShipmentTracker
                         apiBaseUrl={cfg.apiBaseUrl}
                         wallet={wallet}
                         detailHref={panelDetailHref}
-                        title="Mis envíos"
+                        title={operationalInventory ? "Inventario de envíos" : "Mis envíos"}
                         controlled={{ rows, loading, error, onReload: reload }}
                         headerActions={
                             <Link prefetch={false} className="btn btn--ghost btn--sm" href="/panel/envios">
