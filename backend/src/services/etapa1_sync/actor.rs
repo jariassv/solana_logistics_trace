@@ -51,20 +51,44 @@ pub async fn sync_actor(
         });
     }
 
+    let created_at = Utc
+        .timestamp_opt(actor.created_at, 0)
+        .single()
+        .unwrap_or_else(Utc::now);
+
+    let response = ActorSyncResponse {
+        wallet: wallet.clone(),
+        role: role.to_string(),
+        name: actor.name.clone(),
+        location: actor.location.clone(),
+        registration_tx_hash: body.tx_hash.clone(),
+    };
+
     if actors::wallet_exists_for_wallet(pool, &wallet)
         .await
         .map_err(|e| SolanaSyncError::Validation(e.to_string()))?
         .is_some()
     {
-        return Err(SolanaSyncError::Conflict(
-            "actor wallet already registered with a different transaction".into(),
-        ));
-    }
+        actors::update_actor_from_chain_sync(
+            pool,
+            &wallet,
+            role,
+            &actor.name,
+            actor.location.as_ref(),
+            actor.is_active,
+            actor.shipments_created as i32,
+            actor.checkpoints_recorded as i32,
+            created_at,
+            &body.tx_hash,
+        )
+        .await
+        .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
 
-    let created_at = Utc
-        .timestamp_opt(actor.created_at, 0)
-        .single()
-        .unwrap_or_else(Utc::now);
+        return Ok(SyncOutcome {
+            created: false,
+            body: response,
+        });
+    }
 
     actors::insert_actor(
         pool,
@@ -83,12 +107,6 @@ pub async fn sync_actor(
 
     Ok(SyncOutcome {
         created: true,
-        body: ActorSyncResponse {
-            wallet,
-            role: role.to_string(),
-            name: actor.name,
-            location: actor.location,
-            registration_tx_hash: body.tx_hash.clone(),
-        },
+        body: response,
     })
 }
