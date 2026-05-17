@@ -89,25 +89,28 @@ export function AdminWorkspace() {
 
     return (
         <div className="admin-workspace">
-            <header className="admin-workspace__hd">
-                <div>
-                    <h1 className="page-title mb-1">Centro de administración</h1>
-                    <p className="page-sub mb-0">
-                        Dashboard de envíos, búsqueda y acciones según su rol.
+            <header className="admin-page-header">
+                <div className="admin-page-header__intro">
+                    <h1 className="admin-page-header__title">Centro de administración</h1>
+                    <p className="admin-page-header__sub">
+                        Gestión de envíos, búsqueda y eventos logísticos según su rol.
                     </p>
                 </div>
-                <div className="admin-workspace__meta">
+                <div className="admin-page-header__meta">
                     {actorLoading ? (
-                        <span className="text-sm text-muted">Cargando perfil…</span>
+                        <span className="admin-page-header__meta-label">Cargando perfil…</span>
                     ) : (
                         <span className="badge badge--neutral">{roleDisplayName(role)}</span>
                     )}
-                    <span className="text-xs text-muted mono" title={wallet ?? undefined}>
-                        {wallet ? `${wallet.slice(0, 4)}…${wallet.slice(-4)}` : ""}
-                    </span>
+                    {wallet ? (
+                        <span className="admin-page-header__wallet mono" title={wallet}>
+                            {wallet.slice(0, 4)}…{wallet.slice(-4)}
+                        </span>
+                    ) : null}
                 </div>
             </header>
 
+            <div className="admin-workspace__stack">
             <AdminDashboardStats
                 stats={stats}
                 loading={shipmentsLoading}
@@ -134,6 +137,7 @@ export function AdminWorkspace() {
                 onRecordEvent={openRecordForShipment}
                 onCreateShipment={() => setOpenModal("create_shipment")}
             />
+            </div>
 
             <AdminModal
                 open={openModal !== null}

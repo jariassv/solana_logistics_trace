@@ -20,33 +20,34 @@ export function AdminShipmentSearch({
     onReset,
 }: AdminShipmentSearchProps) {
     return (
-        <section className="admin-search card" aria-labelledby="admin-search-title">
-            <div className="card__hd admin-search__hd">
+        <section className="admin-section admin-search card" aria-labelledby="admin-search-title">
+            <header className="card__hd admin-section__head admin-search__head">
                 <div>
-                    <h2 id="admin-search-title" className="admin-search__title">
+                    <h2 id="admin-search-title" className="admin-section__title">
                         Buscar envíos
                     </h2>
-                    <p className="text-sm text-muted mb-0">
-                        {resultCount} resultado{resultCount === 1 ? "" : "s"} de {totalCount}
+                    <p className="admin-section__desc mb-0">
+                        {resultCount} resultado{resultCount === 1 ? "" : "s"} de {totalCount} en
+                        total
                     </p>
                 </div>
                 <button type="button" className="btn btn--ghost btn--sm" onClick={onReset}>
                     Limpiar filtros
                 </button>
-            </div>
+            </header>
             <div className="card__bd admin-search__fields">
-                <div className="form-group mb-0">
-                    <label htmlFor="admin-search-query">Texto</label>
+                <div className="admin-search__field form-group mb-0">
+                    <label htmlFor="admin-search-query">Buscar</label>
                     <input
                         id="admin-search-query"
                         type="search"
                         className="input"
-                        placeholder="Producto, ID, estado…"
+                        placeholder="Producto, ID on-chain, estado…"
                         value={filters.query}
                         onChange={(e) => onChange({ ...filters, query: e.target.value })}
                     />
                 </div>
-                <div className="form-group mb-0">
+                <div className="admin-search__field form-group mb-0">
                     <label htmlFor="admin-search-status">Estado</label>
                     <select
                         id="admin-search-status"
@@ -54,7 +55,7 @@ export function AdminShipmentSearch({
                         value={filters.status}
                         onChange={(e) => onChange({ ...filters, status: e.target.value })}
                     >
-                        <option value="">Todos</option>
+                        <option value="">Todos los estados</option>
                         {statusOptions.map((status) => (
                             <option key={status} value={status}>
                                 {status}
@@ -62,7 +63,7 @@ export function AdminShipmentSearch({
                         ))}
                     </select>
                 </div>
-                <div className="form-group mb-0">
+                <div className="admin-search__field form-group mb-0">
                     <label htmlFor="admin-search-cold">Cadena de frío</label>
                     <select
                         id="admin-search-cold"

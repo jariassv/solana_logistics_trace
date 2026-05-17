@@ -9,11 +9,19 @@ export type AdminDashboardStatsProps = {
     onRefresh: () => void;
 };
 
+type StatItem = {
+    id: string;
+    label: string;
+    hint: string;
+    value: number | null;
+    tone: "total" | "progress" | "delivered" | "cold";
+};
+
 function kpiValue(loading: boolean, value: number | null): string {
     if (loading) {
-        return "…";
+        return "—";
     }
-    return value === null ? "—" : String(value);
+    return value === null ? "0" : String(value);
 }
 
 export function AdminDashboardStats({
@@ -22,49 +30,72 @@ export function AdminDashboardStats({
     filteredCount,
     onRefresh,
 }: AdminDashboardStatsProps) {
+    const items: StatItem[] = [
+        {
+            id: "total",
+            label: "Total envíos",
+            hint: "Asociados a su cartera",
+            value: stats?.total ?? null,
+            tone: "total",
+        },
+        {
+            id: "progress",
+            label: "En curso",
+            hint: "Activos en tránsito",
+            value: stats?.inProgress ?? null,
+            tone: "progress",
+        },
+        {
+            id: "delivered",
+            label: "Entregados",
+            hint: "Estado Delivered",
+            value: stats?.delivered ?? null,
+            tone: "delivered",
+        },
+        {
+            id: "cold",
+            label: "Cadena de frío",
+            hint: "Temperatura controlada",
+            value: stats?.coldChain ?? null,
+            tone: "cold",
+        },
+    ];
+
     return (
-        <section className="admin-dashboard" aria-labelledby="admin-dashboard-title">
-            <div className="admin-dashboard__hd">
+        <section className="admin-section admin-dashboard" aria-labelledby="admin-dashboard-title">
+            <header className="admin-section__head">
                 <div>
-                    <h2 id="admin-dashboard-title" className="admin-dashboard__title">
+                    <h2 id="admin-dashboard-title" className="admin-section__title">
                         Resumen
                     </h2>
-                    <p className="text-sm text-muted mb-0">
+                    <p className="admin-section__desc">
                         {loading
-                            ? "Cargando métricas…"
-                            : `Mostrando ${filteredCount} de ${stats?.total ?? 0} envíos visibles`}
+                            ? "Cargando métricas de sus envíos…"
+                            : `Vista general · ${filteredCount} de ${stats?.total ?? 0} envíos en el listado actual`}
                     </p>
                 </div>
                 <button
                     type="button"
-                    className="btn btn--ghost btn--sm"
+                    className="btn btn--ghost"
                     onClick={onRefresh}
                     disabled={loading}
                 >
-                    Actualizar
+                    Actualizar datos
                 </button>
-            </div>
-            <div className="kpi-grid admin-dashboard__kpis">
-                <div className="kpi">
-                    <div className="kpi__label">Total envíos</div>
-                    <div className="kpi__value">{kpiValue(loading, stats?.total ?? null)}</div>
-                    <div className="kpi__meta">Asociados a su cartera</div>
-                </div>
-                <div className="kpi">
-                    <div className="kpi__label">En curso</div>
-                    <div className="kpi__value">{kpiValue(loading, stats?.inProgress ?? null)}</div>
-                    <div className="kpi__meta">Activos (no entregados ni cancelados)</div>
-                </div>
-                <div className="kpi">
-                    <div className="kpi__label">Entregados</div>
-                    <div className="kpi__value">{kpiValue(loading, stats?.delivered ?? null)}</div>
-                    <div className="kpi__meta">Estado Delivered</div>
-                </div>
-                <div className="kpi">
-                    <div className="kpi__label">Cadena de frío</div>
-                    <div className="kpi__value">{kpiValue(loading, stats?.coldChain ?? null)}</div>
-                    <div className="kpi__meta">Requieren temperatura controlada</div>
-                </div>
+            </header>
+            <div className="admin-stat-grid" role="list">
+                {items.map((item) => (
+                    <article
+                        key={item.id}
+                        className={`admin-stat admin-stat--${item.tone}`}
+                        role="listitem"
+                        aria-busy={loading}
+                    >
+                        <span className="admin-stat__label">{item.label}</span>
+                        <span className="admin-stat__value">{kpiValue(loading, item.value)}</span>
+                        <span className="admin-stat__hint">{item.hint}</span>
+                    </article>
+                ))}
             </div>
         </section>
     );

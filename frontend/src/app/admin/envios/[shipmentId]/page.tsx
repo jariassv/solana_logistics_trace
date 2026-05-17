@@ -80,14 +80,18 @@ export default function AdminShipmentDetailPage() {
     }, [refreshAll, refreshActor, load]);
 
     return (
-        <>
-            <p className="text-sm mb-2">
+        <div className="admin-workspace admin-workspace--detail">
+            <p className="admin-detail-back">
                 <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin">
-                    ← Volver al admin
+                    ← Volver al listado
                 </Link>
             </p>
-            <h1 className="page-title">Detalle de envío</h1>
-            <p className="page-sub mono">{shipmentId}</p>
+            <header className="admin-page-header admin-page-header--compact">
+                <div className="admin-page-header__intro">
+                    <h1 className="admin-page-header__title">Detalle de envío</h1>
+                    <p className="admin-page-header__sub mono">{shipmentId}</p>
+                </div>
+            </header>
 
             {!cfg.apiBaseUrl?.trim() && (
                 <p className="text-muted text-sm mt-2" role="status">
@@ -139,6 +143,6 @@ export default function AdminShipmentDetailPage() {
                     </p>
                 )}
             </AdminModal>
-        </>
+        </div>
     );
 }

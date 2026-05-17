@@ -36,19 +36,19 @@ export function AdminShipmentsPanel({
     });
 
     return (
-        <section className="admin-shipments-panel" aria-labelledby="admin-shipments-title">
-            <header className="admin-shipments-panel__hd">
+        <section className="admin-section admin-shipments-panel" aria-labelledby="admin-shipments-title">
+            <header className="admin-section__head admin-shipments-panel__head">
                 <div>
-                    <h2 id="admin-shipments-title" className="admin-shipments-panel__title">
-                        Envíos
+                    <h2 id="admin-shipments-title" className="admin-section__title">
+                        Listado de envíos
                     </h2>
-                    <p className="text-sm text-muted mb-0">
-                        Acciones disponibles según su rol en cada envío.
+                    <p className="admin-section__desc">
+                        Acciones disponibles en cada tarjeta según su rol.
                     </p>
                 </div>
                 <button
                     type="button"
-                    className="btn btn--primary btn--sm"
+                    className="btn btn--primary"
                     disabled={!createAction.enabled}
                     title={createAction.reason}
                     onClick={onCreateShipment}
@@ -58,13 +58,13 @@ export function AdminShipmentsPanel({
             </header>
 
             {loading ? (
-                <p className="text-sm text-muted">Cargando envíos…</p>
+                <p className="admin-shipments-panel__status text-muted">Cargando envíos…</p>
             ) : rows.length === 0 ? (
                 <div className="admin-shipments-panel__empty card">
-                    <div className="card__bd text-sm text-muted">
-                        <p className="mb-0">
+                    <div className="card__bd">
+                        <p className="admin-section__desc mb-0">
                             No hay envíos que coincidan con los filtros. Ajuste la búsqueda o
-                            registre un nuevo envío si es remitente (Sender).
+                            registre un nuevo envío si tiene rol Sender.
                         </p>
                     </div>
                 </div>
