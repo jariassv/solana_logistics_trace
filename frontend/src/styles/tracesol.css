@@ -1266,23 +1266,27 @@ table.data-table {
   font-weight: 600;
 }
 
-.admin-shipment-detail {
+.shipment-detail {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-.admin-shipment-detail__summary .card__bd {
+.shipment-detail__lead {
+  margin-bottom: 0.25rem;
+}
+
+.shipment-detail__summary .card__bd {
   padding: 1.5rem;
 }
 
-.admin-shipment-detail__grid {
+.shipment-detail__grid {
   display: grid;
   gap: 1.25rem 1.75rem;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
-.admin-shipment-detail__grid > div > span:first-child {
+.shipment-detail__grid > div > span:first-child {
   display: block;
   font-size: 0.75rem;
   font-weight: 500;
@@ -1292,42 +1296,19 @@ table.data-table {
   margin-bottom: 0.35rem;
 }
 
-.admin-shipment-detail__map-card .card__bd {
+.shipment-detail__map-card .card__bd {
   padding: 1rem;
 }
 
-.admin-shipment-detail__main .card__bd {
+.shipment-detail__main .card__bd {
   padding: 1.25rem 1.35rem;
 }
 
-.admin-shipment-detail__split {
-  display: grid;
-  gap: 1.25rem;
-  margin-top: 1.25rem;
-}
-
-@media (min-width: 768px) {
-  .admin-shipment-detail__split {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.admin-shipment-detail__section {
-  margin-top: 1.25rem;
-}
-
-.admin-shipment-detail__section-title {
-  margin: 0 0 0.65rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.admin-shipment-detail__map {
+.shipment-detail__map {
   min-height: 220px;
 }
 
-.admin-shipment-detail__map-skeleton {
+.shipment-detail__map-skeleton {
   min-height: 180px;
   display: flex;
   align-items: center;
@@ -1336,7 +1317,7 @@ table.data-table {
   border-radius: var(--radius-sm);
 }
 
-.admin-shipment-detail__footer {
+.shipment-detail__footer {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
