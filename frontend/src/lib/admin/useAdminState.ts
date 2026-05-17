@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
 
 import { useShipmentsList } from "@/lib/api/useShipmentsList";
-import type { AdminProcessContext } from "@/lib/admin/processCapabilities";
+import { shipmentPdaFromOnChainId } from "@/lib/admin/shipmentPda";
 import { getPublicConfig } from "@/lib/env";
 import { fetchProgramConfig } from "@/lib/solana/program_config";
-import { actorPda, shipmentPda } from "@/lib/solana/pdas";
+import { actorPda } from "@/lib/solana/pdas";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
-export function useAdminProcessState() {
+export function useAdminState() {
     const cfg = useMemo(() => getPublicConfig(), []);
     const programId = cfg.programPublicKey;
     const apiBase = cfg.apiBaseUrl.trim() !== "" ? cfg.apiBaseUrl : undefined;
@@ -21,7 +21,6 @@ export function useAdminProcessState() {
 
     const [prog, setProg] = useState<Awaited<ReturnType<typeof fetchProgramConfig>>>(null);
     const [actorOnChain, setActorOnChain] = useState<boolean | null>(null);
-    const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
 
     const { rows, loading: shipmentsLoading, reload: reloadShipments } = useShipmentsList(
         apiBase,
@@ -78,51 +77,14 @@ export function useAdminProcessState() {
         void Promise.resolve().then(() => void refreshActorOnChain());
     }, [refreshActorOnChain, prog]);
 
-    useEffect(() => {
-        if (!rows?.length) {
-            queueMicrotask(() => setSelectedShipmentId(null));
-            return;
-        }
-        queueMicrotask(() => {
-            setSelectedShipmentId((prev) => {
-                if (prev && rows.some((r) => r.shipmentId === prev)) {
-                    return prev;
-                }
-                return rows[0]!.shipmentId;
-            });
-        });
-    }, [rows]);
-
-    const selectedShipment = useMemo(
-        () => rows?.find((r) => r.shipmentId === selectedShipmentId) ?? null,
-        [rows, selectedShipmentId],
-    );
-
-    const selectedShipmentPda = useMemo(() => {
-        if (!programId || !selectedShipment) {
-            return null;
-        }
-        try {
-            const id = BigInt(selectedShipment.onChainShipmentId);
-            const [pk] = shipmentPda(programId, id);
-            return pk;
-        } catch {
-            return null;
-        }
-    }, [programId, selectedShipment]);
-
-    const processContext: AdminProcessContext = useMemo(
-        () => ({
-            walletConnected: Boolean(wallet),
-            programConfigured: Boolean(programId),
-            programActive: Boolean(prog),
-            actorOnChain: actorOnChain === true,
-            actorInBackend: Boolean(role),
-            selectedShipmentId,
-            hasShipments: Boolean(rows && rows.length > 0),
-            role,
-        }),
-        [wallet, programId, prog, actorOnChain, role, selectedShipmentId, rows],
+    const resolveShipmentPda = useCallback(
+        (onChainShipmentId: string) => {
+            if (!programId) {
+                return null;
+            }
+            return shipmentPdaFromOnChainId(programId, onChainShipmentId);
+        },
+        [programId],
     );
 
     return {
@@ -134,16 +96,14 @@ export function useAdminProcessState() {
         role,
         actorLoading,
         prog,
-        processContext,
+        programActive: Boolean(prog),
         actorOnChain,
         rows,
         shipmentsLoading,
-        selectedShipmentId,
-        setSelectedShipmentId,
-        selectedShipment,
-        selectedShipmentPda,
-        refreshProgram,
-        refreshActorOnChain,
         refreshAll,
+        resolveShipmentPda,
     };
 }
+
+/** @deprecated Use `useAdminState`. */
+export const useAdminProcessState = useAdminState;

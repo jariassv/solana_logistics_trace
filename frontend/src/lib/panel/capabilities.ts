@@ -32,6 +32,11 @@ export function canSenderRegisterShipments(role: string | null): boolean {
     return role === "Sender";
 }
 
+/** Carrier, Hub y Recipient registran checkpoints on-chain. */
+export function canRecordCheckpoint(role: string | null): boolean {
+    return role === "Carrier" || role === "Hub" || role === "Recipient";
+}
+
 /** Enlaces de envíos requieren wallet conectada (query `wallet` obligatoria en API). */
 export function canOpenShipmentTracker(walletConnected: boolean): boolean {
     return walletConnected;
