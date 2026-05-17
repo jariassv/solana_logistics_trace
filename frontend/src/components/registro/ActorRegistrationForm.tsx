@@ -348,15 +348,21 @@ export function ActorRegistrationForm({
                 {hintText && !busy ? (
                     <p className="registro-form__hint text-sm text-muted mb-0">{hintText}</p>
                 ) : null}
-                {!prog && payer && programId && onOpenInitialize ? (
+                {!prog && payer && programId ? (
                     <p className="registro-form__aux text-xs text-muted mb-0">
-                        <button
-                            type="button"
-                            className="btn btn--ghost btn--sm"
-                            onClick={onOpenInitialize}
-                        >
-                            Activar programa (una vez)
-                        </button>
+                        {onOpenInitialize ? (
+                            <button
+                                type="button"
+                                className="btn btn--ghost btn--sm"
+                                onClick={onOpenInitialize}
+                            >
+                                Activar programa (una vez)
+                            </button>
+                        ) : (
+                            <a className="btn btn--ghost btn--sm" href="/consola">
+                                Activar programa en Consola
+                            </a>
+                        )}
                     </p>
                 ) : null}
                 {banner ? (

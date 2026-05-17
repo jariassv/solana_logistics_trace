@@ -6,8 +6,9 @@ export default function ConsolaPage() {
             <div className="shell content-narrow">
                 <h1 className="page-title">Consola del sistema</h1>
                 <p className="page-sub">
-                    Vista operativa para el administrador general: disponibilidad del backend,
-                    salud RPC visto desde la API y parámetros públicos de red.
+                    Vista operativa para el administrador general: activación del programa on-chain,
+                    disponibilidad del backend, salud RPC visto desde la API y parámetros públicos de
+                    red.
                 </p>
                 <OwnerConsoleClient />
             </div>

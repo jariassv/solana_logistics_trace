@@ -115,7 +115,7 @@ export function userFacingChainError(step: ChainStepKey, rawMessageOrError: stri
         return "Conecte la billetera firmante e inténtelo de nuevo.";
     }
     if (m.includes("Programa no activo") || m.includes("ProgramConfig")) {
-        return "El programa no está desplegado o inicializado en esta red. Ejecute anchor deploy e initialize.";
+        return "El programa no está desplegado o inicializado en esta red. Use Consola → Activar programa.";
     }
     if (
         step === "record_checkpoint" &&

@@ -53,7 +53,7 @@ export function userMessageFromTransactionError(raw: string): string | null {
     }
     if (lower.includes("simulation failed")) {
         if (lower.includes("accountnotinitialized") && lower.includes("program_config")) {
-            return "El programa no está activado en esta red. Ejecute primero «Activar programa» en Admin.";
+            return "El programa no está activado en esta red. Ejecute primero «Activar programa» en Consola.";
         }
         return "La simulación de la transacción falló. Compruebe red Phantom, SOL y que el programa esté activo.";
     }
