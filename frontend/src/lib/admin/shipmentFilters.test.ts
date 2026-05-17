@@ -4,6 +4,7 @@ import type { ShipmentListItem } from "@/lib/api/shipments";
 
 import {
     computeShipmentStats,
+    EMPTY_SHIPMENT_FILTERS,
     filterShipments,
     uniqueShipmentStatuses,
 } from "./shipmentFilters";
@@ -41,6 +42,16 @@ describe("shipmentFilters", () => {
         });
     });
 
+    it("returns empty stats for empty list", () => {
+        expect(computeShipmentStats([])).toEqual({
+            total: 0,
+            inProgress: 0,
+            delivered: 0,
+            cancelled: 0,
+            coldChain: 0,
+        });
+    });
+
     it("filters by query and status", () => {
         const out = filterShipments(rows, {
             query: "vacuna",
@@ -51,7 +62,15 @@ describe("shipmentFilters", () => {
         expect(out[0]?.shipmentId).toBe("c");
     });
 
-    it("lists unique statuses", () => {
+    it("filters cold chain no", () => {
+        const out = filterShipments(rows, {
+            ...EMPTY_SHIPMENT_FILTERS,
+            coldChain: "no",
+        });
+        expect(out).toHaveLength(2);
+    });
+
+    it("lists unique statuses sorted", () => {
         expect(uniqueShipmentStatuses(rows)).toEqual(["Cancelled", "Delivered", "InTransit"]);
     });
 });
