@@ -55,7 +55,29 @@ export function userMessageFromTransactionError(raw: string): string | null {
         if (lower.includes("accountnotinitialized") && lower.includes("program_config")) {
             return "El programa no está activado en esta red. Ejecute primero «Activar programa» en Consola.";
         }
-        return "La simulación de la transacción falló. Compruebe red Phantom, SOL y que el programa esté activo.";
+        if (
+            (lower.includes("accountnotinitialized") || lower.includes("account not initialized")) &&
+            (lower.includes("actor") || lower.includes("account: actor"))
+        ) {
+            return "Registre su actor en /registro con esta wallet antes de registrar eventos.";
+        }
+        if (
+            lower.includes("accountnotinitialized") ||
+            lower.includes("account not initialized") ||
+            lower.includes("could not find account") ||
+            (lower.includes("account: shipment") && lower.includes("shipment"))
+        ) {
+            if (lower.includes("shipment") || lower.includes("checkpoint")) {
+                return "El envío no existe en esta cadena (p. ej. tras reiniciar el validador). Cree un envío nuevo on-chain o vuelva a sincronizar.";
+            }
+        }
+        if (lower.includes("accountownedbywrongprogram") || lower.includes("owned by a different program")) {
+            return "Una cuenta de la transacción no pertenece al programa esperado. Revise PROGRAM_ID y la red en Phantom.";
+        }
+        if (lower.includes("already in use") && lower.includes("checkpoint")) {
+            return "El índice de evento ya existe en cadena. Recargue la página e inténtelo de nuevo.";
+        }
+        return "La simulación de la transacción falló. Compruebe red Phantom, SOL, que el programa esté activo y que el envío exista on-chain.";
     }
     if (lower.includes("user rejected") || lower.includes("rejected the request")) {
         return "Operación cancelada en la billetera.";

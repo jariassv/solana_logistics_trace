@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Connection, PublicKey } from "@solana/web3.js";
 
+import { GeoPointField, type LocationInputMode } from "@/components/admin/GeoPointField";
 import { apiBaseHasV1Prefix, normalizeApiBaseUrl } from "@/lib/api/backendConnectivity";
 import { loadCheckpointSelectOptions } from "@/lib/api/catalogs";
 import { postCheckpointsSync } from "@/lib/api/sync";
 import { getPublicConfig } from "@/lib/env";
+import { parseGeoPoint, type GeoPoint } from "@/lib/geo/geoPoint";
 import {
     catalogSourceLabel,
     syncSuccessCopy,
@@ -22,6 +24,7 @@ import { confirmSerializedTx } from "@/lib/solana/confirmSerializedTx";
 import type { CheckpointTypeCode } from "@/lib/solana/ix";
 import { CheckpointTypeCode as Cp } from "@/lib/solana/ix";
 import { createRecordCheckpointIx } from "@/lib/solana/instructions";
+import { validateRecordCheckpointPreflight } from "@/lib/solana/chainPreflight";
 import { fetchProgramConfig } from "@/lib/solana/program_config";
 
 const FALLBACK_CP_ROWS: CatalogOptionRow<CheckpointTypeCode>[] = [
@@ -33,6 +36,28 @@ const FALLBACK_CP_ROWS: CatalogOptionRow<CheckpointTypeCode>[] = [
     { code: "Delivered", label: "Delivered", value: Cp.Delivered },
     { code: "SensorData", label: "SensorData", value: Cp.SensorData },
 ];
+
+function coordsForChain(p: GeoPoint | null): { lat: number | null; lng: number | null } {
+    if (!p) {
+        return { lat: null, lng: null };
+    }
+    return { lat: Math.round(p.lat), lng: Math.round(p.lng) };
+}
+
+function mergeMetadataWithCoords(metadata: string, p: GeoPoint | null): string {
+    if (!p) {
+        return metadata.trim();
+    }
+    try {
+        const base = metadata.trim() ? (JSON.parse(metadata) as Record<string, unknown>) : {};
+        if (typeof base !== "object" || base === null || Array.isArray(base)) {
+            return JSON.stringify({ lat: p.lat, lng: p.lng });
+        }
+        return JSON.stringify({ ...base, lat: p.lat, lng: p.lng });
+    } catch {
+        return JSON.stringify({ lat: p.lat, lng: p.lng });
+    }
+}
 
 export type RecordCheckpointFormProps = {
     connection: Connection;
@@ -64,8 +89,8 @@ export function RecordCheckpointForm({
 
     const [cpType, setCpType] = useState<CheckpointTypeCode>(Cp.Pickup);
     const [cpLocation, setCpLocation] = useState("");
-    const [lat, setLat] = useState("");
-    const [lng, setLng] = useState("");
+    const [coordValue, setCoordValue] = useState("");
+    const [coordMode, setCoordMode] = useState<LocationInputMode>("coordinates");
     const [temp, setTemp] = useState("");
     const [humidity, setHumidity] = useState("");
     const [metadata, setMetadata] = useState("{}");
@@ -122,11 +147,23 @@ export function RecordCheckpointForm({
         setBusy(true);
         setBanner(null);
         try {
+            const preflightErr = await validateRecordCheckpointPreflight(
+                connection,
+                programId,
+                payer,
+                shipmentPda,
+                onChainShipmentId,
+            );
+            if (preflightErr) {
+                setBanner({ kind: "err", text: preflightErr });
+                return;
+            }
             const cur = await fetchProgramConfig(connection, programId);
             if (!cur) throw new Error("Programa no activo");
             const nextCp = cur.decoded.checkpointsRecorded + BigInt(1);
-            const latNum: number | null = lat.trim() === "" ? null : Number(lat);
-            const lngNum: number | null = lng.trim() === "" ? null : Number(lng);
+            const coords = coordMode === "coordinates" ? parseGeoPoint(coordValue) : null;
+            const { lat: latNum, lng: lngNum } = coordsForChain(coords);
+            const metaOut = mergeMetadataWithCoords(metadata, coords);
             const tmpNum: number | null = temp.trim() === "" ? null : Number.parseInt(temp, 10);
             const humNum: number | null =
                 humidity.trim() === "" ? null : Number.parseInt(humidity, 10);
@@ -144,7 +181,7 @@ export function RecordCheckpointForm({
                     longitude: lngNum,
                     temperature: tmpNum,
                     humidity: humNum,
-                    metadata: metadata.trim(),
+                    metadata: metaOut,
                 }),
             );
             if (apiBaseUrl.trim()) {
@@ -176,10 +213,11 @@ export function RecordCheckpointForm({
         programId,
         payer,
         shipmentPda,
+        onChainShipmentId,
         selectedCpType,
         cpLocation,
-        lat,
-        lng,
+        coordValue,
+        coordMode,
         temp,
         humidity,
         metadata,
@@ -240,28 +278,15 @@ export function RecordCheckpointForm({
                     />
                 </div>
             </div>
-            <div className="form-row">
-                <div className="form-group">
-                    <label htmlFor="admin-cp-lat">Lat (opc.)</label>
-                    <input
-                        id="admin-cp-lat"
-                        className="input mono"
-                        value={lat}
-                        disabled={busy}
-                        onChange={(e) => setLat(e.target.value)}
-                    />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="admin-cp-lng">Lng (opc.)</label>
-                    <input
-                        id="admin-cp-lng"
-                        className="input mono"
-                        value={lng}
-                        disabled={busy}
-                        onChange={(e) => setLng(e.target.value)}
-                    />
-                </div>
-            </div>
+            <GeoPointField
+                id="admin-cp-coords"
+                label="Coordenadas del evento (opcional)"
+                value={coordValue}
+                onChange={setCoordValue}
+                disabled={busy}
+                mode={coordMode}
+                onModeChange={setCoordMode}
+            />
             <div className="form-row">
                 <div className="form-group">
                     <label htmlFor="admin-cp-temp">Temp. °C (opc.)</label>

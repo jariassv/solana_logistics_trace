@@ -14,4 +14,12 @@ describe("userMessageFromTransactionError", () => {
             /SOL suficiente/,
         );
     });
+
+    it("detects missing shipment on simulation", () => {
+        expect(
+            userMessageFromTransactionError(
+                "Simulation failed. Error processing Instruction 0: AnchorError caused by account: shipment. Error Code: AccountNotInitialized.",
+            ),
+        ).toMatch(/envío no existe/);
+    });
 });
