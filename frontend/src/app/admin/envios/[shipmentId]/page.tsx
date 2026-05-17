@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { AdminModal } from "@/components/admin/AdminModal";
-import { AdminShipmentDetailView } from "@/components/admin/AdminShipmentDetailView";
 import { RecordCheckpointForm } from "@/components/admin/RecordCheckpointForm";
+import { ShipmentDetailView } from "@/components/shipments/ShipmentDetailView";
+import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
 import { shipmentCardActions } from "@/lib/admin/shipmentActions";
-import { getShipmentDetail, type ShipmentDetail } from "@/lib/api/shipments";
 import { useAdminState } from "@/lib/admin/useAdminState";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
@@ -27,36 +27,12 @@ export default function AdminShipmentDetailPage() {
         resolveShipmentPda,
     } = useAdminState();
 
-    const [detail, setDetail] = useState<ShipmentDetail | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const { detail, error, loading, reload } = useShipmentDetail(
+        cfg.apiBaseUrl,
+        shipmentId,
+        wallet,
+    );
     const [recordOpen, setRecordOpen] = useState(false);
-
-    const load = useCallback(async () => {
-        if (!cfg.apiBaseUrl || !wallet || !shipmentId) {
-            return;
-        }
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await getShipmentDetail(cfg.apiBaseUrl, shipmentId, wallet);
-            if (!res.ok) {
-                setDetail(null);
-                setError(`No se pudo cargar el detalle (HTTP ${res.status}).`);
-                return;
-            }
-            setDetail(res.data);
-        } catch (e) {
-            setDetail(null);
-            setError(e instanceof Error ? e.message : "Error de red");
-        } finally {
-            setLoading(false);
-        }
-    }, [cfg.apiBaseUrl, shipmentId, wallet]);
-
-    useEffect(() => {
-        void Promise.resolve().then(() => void load());
-    }, [load]);
 
     const shipmentPda = useMemo(() => {
         if (!detail) {
@@ -75,9 +51,9 @@ export default function AdminShipmentDetailPage() {
     const onRecordSuccess = useCallback(async () => {
         await refreshAll();
         await refreshActor();
-        await load();
+        await reload();
         setRecordOpen(false);
-    }, [refreshAll, refreshActor, load]);
+    }, [refreshAll, refreshActor, reload]);
 
     return (
         <div className="admin-workspace admin-workspace--detail">
@@ -94,30 +70,42 @@ export default function AdminShipmentDetailPage() {
             </header>
 
             {!cfg.apiBaseUrl?.trim() && (
-                <p className="text-muted text-sm mt-2" role="status">
+                <p className="text-muted text-sm" role="status">
                     Configure <code className="mono">NEXT_PUBLIC_API_BASE_URL</code>.
                 </p>
             )}
 
             {!wallet && (
-                <p className="text-muted text-sm mt-2" role="status">
+                <p className="text-muted text-sm" role="status">
                     Conecte la wallet en el encabezado para ver el detalle.
                 </p>
             )}
 
-            {loading && <p className="text-muted text-sm mt-2">Cargando…</p>}
+            {loading && <p className="text-muted text-sm">Cargando…</p>}
             {error && (
-                <p className="text-sm mt-2" role="alert">
+                <p className="text-sm" role="alert">
                     {error}
                 </p>
             )}
 
             {detail && (
-                <AdminShipmentDetailView
+                <ShipmentDetailView
                     detail={detail}
-                    canRecordEvent={Boolean(recordAction?.enabled)}
-                    recordDisabledReason={recordAction?.reason}
-                    onRecordEvent={() => setRecordOpen(true)}
+                    summaryVariant="grid"
+                    showCheckpointTable
+                    showTimeline
+                    showMap
+                    footer={
+                        <button
+                            type="button"
+                            className="btn btn--primary"
+                            disabled={!recordAction?.enabled}
+                            title={recordAction?.reason}
+                            onClick={() => setRecordOpen(true)}
+                        >
+                            Registrar evento
+                        </button>
+                    }
                 />
             )}
 
