@@ -959,6 +959,124 @@ table.data-table {
   max-width: 40rem;
 }
 
+.admin-modal__wrap:has(.admin-modal--xl) {
+  max-width: 52rem;
+}
+
+.admin-shipments-panel {
+  margin-bottom: 1.75rem;
+}
+
+.admin-shipments-panel__hd {
+  margin-bottom: 1rem;
+}
+
+.admin-shipments-panel__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.admin-shipments-panel__grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.admin-shipment-card--selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.admin-shipment-card__hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-shipment-card__title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-shipment-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.admin-workspace__layout--process {
+  margin-top: 0.5rem;
+}
+
+.admin-workspace__steps-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-shipment-detail__grid {
+  display: grid;
+  gap: 0.85rem 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.admin-shipment-detail__split {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .admin-shipment-detail__split {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.admin-shipment-detail__section {
+  margin-top: 1.25rem;
+}
+
+.admin-shipment-detail__section-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.admin-shipment-detail__map {
+  min-height: 220px;
+}
+
+.admin-shipment-detail__map-skeleton {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.admin-shipment-detail__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.table--compact th,
+.table--compact td {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.82rem;
+}
+
 .admin-modal {
   background: var(--color-bg-card);
   border-radius: var(--radius-md);

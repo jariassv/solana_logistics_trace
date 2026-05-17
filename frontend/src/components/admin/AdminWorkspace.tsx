@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { AdminModal } from "@/components/admin/AdminModal";
+import { AdminShipmentsPanel } from "@/components/admin/AdminShipmentsPanel";
 import { CreateShipmentForm } from "@/components/admin/CreateShipmentForm";
 import { InitializeProgramPanel } from "@/components/admin/InitializeProgramPanel";
 import { RecordCheckpointForm } from "@/components/admin/RecordCheckpointForm";
@@ -36,6 +37,7 @@ export function AdminWorkspace() {
     const { role, actorLoading, refreshActor } = useWalletSession();
     const state = useAdminProcessState();
     const [openStep, setOpenStep] = useState<AdminProcessStep | null>(null);
+    const [detailShipmentId, setDetailShipmentId] = useState<string | null>(null);
 
     const {
         cfg,
@@ -45,6 +47,7 @@ export function AdminWorkspace() {
         wallet,
         prog,
         processContext,
+        actorOnChain,
         rows,
         shipmentsLoading,
         selectedShipmentId,
@@ -79,6 +82,22 @@ export function AdminWorkspace() {
             setOpenStep(step);
         },
         [processContext],
+    );
+
+    const openRecordForShipment = useCallback(
+        (shipmentId: string) => {
+            setSelectedShipmentId(shipmentId);
+            const ctx = {
+                ...processContext,
+                selectedShipmentId: shipmentId,
+            };
+            const status = stepVisualStatus("record_checkpoint", ctx);
+            if (status === "locked") {
+                return;
+            }
+            setOpenStep("record_checkpoint");
+        },
+        [processContext, setSelectedShipmentId],
     );
 
     const modalTitle = openStep ? adminStepLabel(openStep) : "";
@@ -121,7 +140,7 @@ export function AdminWorkspace() {
                 if (!selectedShipmentPda || !selectedShipment) {
                     return (
                         <p className="text-sm text-muted mb-0">
-                            Seleccione un envío en el panel lateral antes de registrar el evento.
+                            Seleccione un envío en las tarjetas antes de registrar el evento.
                         </p>
                     );
                 }
@@ -158,8 +177,8 @@ export function AdminWorkspace() {
                 <div>
                     <h1 className="page-title mb-1">Centro de administración</h1>
                     <p className="page-sub mb-0">
-                        Proceso guiado: cada paso se habilita cuando el anterior está completo y según
-                        su rol.
+                        Proceso guiado y envíos: cada acción se habilita según el paso anterior y su
+                        rol.
                     </p>
                 </div>
                 <div className="admin-workspace__meta">
@@ -176,9 +195,25 @@ export function AdminWorkspace() {
                 </div>
             </header>
 
-            <div className="admin-workspace__layout">
+            <AdminShipmentsPanel
+                rows={rows}
+                loading={shipmentsLoading}
+                role={role}
+                wallet={wallet}
+                apiBaseUrl={cfg.apiBaseUrl}
+                programActive={Boolean(prog)}
+                actorOnChain={actorOnChain === true}
+                selectedShipmentId={selectedShipmentId}
+                onSelectShipment={setSelectedShipmentId}
+                onRecordEvent={openRecordForShipment}
+                detailShipmentId={detailShipmentId}
+                onOpenDetail={setDetailShipmentId}
+                onCloseDetail={() => setDetailShipmentId(null)}
+            />
+
+            <div className="admin-workspace__layout admin-workspace__layout--process">
                 <aside className="admin-workspace__aside card">
-                    <div className="card__hd">Estado</div>
+                    <div className="card__hd">Estado del programa</div>
                     <div className="card__bd text-sm">
                         <p className="admin-workspace__state-line mb-2">{configSummary}</p>
                         <button
@@ -189,34 +224,10 @@ export function AdminWorkspace() {
                             Actualizar
                         </button>
                     </div>
-                    <div className="card__hd">Envío para eventos</div>
-                    <div className="card__bd">
-                        {shipmentsLoading ? (
-                            <p className="text-sm text-muted mb-0">Cargando envíos…</p>
-                        ) : !rows?.length ? (
-                            <p className="text-sm text-muted mb-0">
-                                Sin envíos visibles. Un remitente debe registrar un envío primero.
-                            </p>
-                        ) : (
-                            <select
-                                className="select"
-                                value={selectedShipmentId ?? ""}
-                                onChange={(e) =>
-                                    setSelectedShipmentId(e.target.value || null)
-                                }
-                                aria-label="Seleccionar envío"
-                            >
-                                {rows.map((r) => (
-                                    <option key={r.shipmentId} value={r.shipmentId}>
-                                        #{r.onChainShipmentId} · {r.product} ({r.status})
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                    </div>
                 </aside>
 
                 <div className="admin-workspace__steps">
+                    <h2 className="admin-workspace__steps-title">Proceso operativo</h2>
                     <ol className="admin-stepper">
                         {PROCESS_STEPS.map((step, index) => {
                             const status = stepVisualStatus(step, processContext);

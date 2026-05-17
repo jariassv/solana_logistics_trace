@@ -151,7 +151,7 @@ export function stepLockReason(step: AdminProcessStep, ctx: AdminProcessContext)
             return "No hay envíos asociados a su cartera. Registre un envío antes (remitente).";
         }
         if (!ctx.selectedShipmentId) {
-            return "Seleccione el número de envío (on-chain) en el panel lateral.";
+            return "Seleccione un envío en las tarjetas de arriba.";
         }
     }
     if (step === "initialize" && ctx.programActive) {
