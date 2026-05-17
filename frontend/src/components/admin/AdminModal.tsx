@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type AdminModalProps = {
     open: boolean;
@@ -10,7 +11,13 @@ export type AdminModalProps = {
     size?: "md" | "lg" | "xl";
 };
 
+function subscribeNoop() {
+    return () => {};
+}
+
 export function AdminModal({ open, title, onClose, children, size = "md" }: AdminModalProps) {
+    const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
+
     useEffect(() => {
         if (!open) {
             return undefined;
@@ -29,12 +36,12 @@ export function AdminModal({ open, title, onClose, children, size = "md" }: Admi
         };
     }, [open, onClose]);
 
-    if (!open) {
+    if (!open || !mounted) {
         return null;
     }
 
-    return (
-        <div className="admin-modal-root">
+    const modal = (
+        <>
             <div className="admin-modal__backdrop" role="presentation" onClick={onClose} />
             <div className="admin-modal__wrap">
                 <div
@@ -59,6 +66,11 @@ export function AdminModal({ open, title, onClose, children, size = "md" }: Admi
                     <div className="admin-modal__bd">{children}</div>
                 </div>
             </div>
-        </div>
+        </>
+    );
+
+    return createPortal(
+        <div className="admin-modal-root">{modal}</div>,
+        document.body,
     );
 }

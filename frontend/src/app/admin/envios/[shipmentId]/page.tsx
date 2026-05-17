@@ -99,8 +99,8 @@ export default function AdminShipmentDetailPage() {
                         <button
                             type="button"
                             className="btn btn--primary btn--sm"
-                            disabled={!recordGate.enabled}
                             title={recordGate.reason}
+                            aria-disabled={!recordGate.enabled}
                             onClick={() => setRecordOpen(true)}
                         >
                             Registrar evento
@@ -115,7 +115,11 @@ export default function AdminShipmentDetailPage() {
                 onClose={() => setRecordOpen(false)}
                 size="lg"
             >
-                {programId && payer && detail && shipmentPda ? (
+                {!recordGate.enabled ? (
+                    <p className="text-sm mb-0" role="status">
+                        {recordGate.reason ?? "No puede registrar eventos con su rol o perfil actual."}
+                    </p>
+                ) : programId && payer && detail && shipmentPda ? (
                     <RecordCheckpointForm
                         connection={connection}
                         programId={programId}

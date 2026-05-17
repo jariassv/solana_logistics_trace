@@ -1103,10 +1103,14 @@ table.data-table {
   font-family: inherit;
 }
 
+.btn[aria-disabled="true"] {
+  opacity: 0.65;
+}
+
 .admin-modal-root {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 5000;
   display: flex;
   align-items: center;
   justify-content: center;
