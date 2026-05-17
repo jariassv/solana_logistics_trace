@@ -132,7 +132,9 @@ export function AdminWorkspace() {
                 loading={shipmentsLoading}
                 role={role}
                 programActive={programActive}
-                actorOnChain={actorOnChain === true}
+                programConfigured={Boolean(programId)}
+                actorOnChain={actorOnChain}
+                actorLoading={actorLoading}
                 hasWallet={Boolean(wallet)}
                 onRecordEvent={openRecordForShipment}
                 onCreateShipment={() => setOpenModal("create_shipment")}

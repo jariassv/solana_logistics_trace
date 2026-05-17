@@ -12,7 +12,9 @@ export type AdminShipmentsPanelProps = {
     loading: boolean;
     role: string | null;
     programActive: boolean;
-    actorOnChain: boolean;
+    programConfigured: boolean;
+    actorOnChain: boolean | null;
+    actorLoading?: boolean;
     hasWallet: boolean;
     onRecordEvent: (shipmentId: string) => void;
     onCreateShipment: () => void;
@@ -23,7 +25,9 @@ export function AdminShipmentsPanel({
     loading,
     role,
     programActive,
+    programConfigured,
     actorOnChain,
+    actorLoading,
     hasWallet,
     onRecordEvent,
     onCreateShipment,
@@ -75,8 +79,9 @@ export function AdminShipmentsPanel({
                             key={shipment.shipmentId}
                             shipment={shipment}
                             role={role}
-                            programActive={programActive}
+                            programConfigured={programConfigured}
                             actorOnChain={actorOnChain}
+                            actorLoading={actorLoading}
                             hasWallet={hasWallet}
                             detailHref={adminShipmentDetailHref(shipment.shipmentId)}
                             onRecordEvent={onRecordEvent}

@@ -15,8 +15,8 @@ const shipment: ShipmentListItem = {
 };
 
 const ready = {
-    programActive: true,
-    actorOnChain: true,
+    programConfigured: true,
+    actorOnChain: true as boolean | null,
     hasWallet: true,
     detailHref: "/admin/envios/ship-abc",
 };

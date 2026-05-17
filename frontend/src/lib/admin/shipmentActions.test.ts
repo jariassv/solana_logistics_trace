@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
     canCreateShipmentAction,
+    canRecordCheckpointAction,
     shipmentCardActions,
     statusBadgeClass,
 } from "./shipmentActions";
 
 const ready = {
     hasWallet: true,
-    programActive: true,
-    actorOnChain: true,
+    programConfigured: true,
+    actorOnChain: true as boolean | null,
 };
 
 describe("shipmentCardActions", () => {
@@ -32,7 +33,7 @@ describe("shipmentCardActions", () => {
         const view = shipmentCardActions({
             role: "Inspector",
             hasWallet: true,
-            programActive: false,
+            programConfigured: false,
             actorOnChain: false,
         }).find((a) => a.id === "view_detail");
         expect(view?.enabled).toBe(true);
@@ -46,13 +47,37 @@ describe("shipmentCardActions", () => {
     });
 });
 
+describe("canRecordCheckpointAction", () => {
+    it("enables while actor on-chain is still unknown", () => {
+        expect(
+            canRecordCheckpointAction({ ...ready, role: "Carrier", actorOnChain: null }).enabled,
+        ).toBe(true);
+    });
+
+    it("disables while actor profile is loading", () => {
+        expect(
+            canRecordCheckpointAction({
+                ...ready,
+                role: "Carrier",
+                actorLoading: true,
+            }).enabled,
+        ).toBe(false);
+    });
+});
+
 describe("canCreateShipmentAction", () => {
+    const createReady = {
+        hasWallet: true,
+        programActive: true,
+        actorOnChain: true as boolean | null,
+    };
+
     it("allows Sender when program and actor are ready", () => {
-        expect(canCreateShipmentAction({ ...ready, role: "Sender" }).enabled).toBe(true);
+        expect(canCreateShipmentAction({ ...createReady, role: "Sender" }).enabled).toBe(true);
     });
 
     it("denies non-Sender roles", () => {
-        const result = canCreateShipmentAction({ ...ready, role: "Carrier" });
+        const result = canCreateShipmentAction({ ...createReady, role: "Carrier" });
         expect(result.enabled).toBe(false);
         expect(result.reason).toContain("Sender");
     });

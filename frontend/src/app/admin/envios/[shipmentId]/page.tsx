@@ -8,20 +8,19 @@ import { AdminModal } from "@/components/admin/AdminModal";
 import { RecordCheckpointForm } from "@/components/admin/RecordCheckpointForm";
 import { ShipmentDetailView } from "@/components/shipments/ShipmentDetailView";
 import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
-import { shipmentCardActions } from "@/lib/admin/shipmentActions";
+import { canRecordCheckpointAction } from "@/lib/admin/shipmentActions";
 import { useAdminState } from "@/lib/admin/useAdminState";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 export default function AdminShipmentDetailPage() {
     const params = useParams();
     const shipmentId = typeof params?.shipmentId === "string" ? params.shipmentId : "";
-    const { wallet, role, refreshActor } = useWalletSession();
+    const { wallet, role, actorLoading, refreshActor } = useWalletSession();
     const {
         cfg,
         programId,
         connection,
         payer,
-        programActive,
         actorOnChain,
         refreshAll,
         resolveShipmentPda,
@@ -41,12 +40,13 @@ export default function AdminShipmentDetailPage() {
         return resolveShipmentPda(detail.onChainShipmentId);
     }, [detail, resolveShipmentPda]);
 
-    const recordAction = shipmentCardActions({
+    const recordGate = canRecordCheckpointAction({
         role,
         hasWallet: Boolean(wallet),
-        programActive,
-        actorOnChain: actorOnChain === true,
-    }).find((a) => a.id === "record_event");
+        programConfigured: Boolean(programId),
+        actorOnChain,
+        actorLoading,
+    });
 
     const onRecordSuccess = useCallback(async () => {
         await refreshAll();
@@ -95,12 +95,12 @@ export default function AdminShipmentDetailPage() {
                     showCheckpointTable
                     showTimeline
                     showMap
-                    footer={
+                    summaryAction={
                         <button
                             type="button"
-                            className="btn btn--primary"
-                            disabled={!recordAction?.enabled}
-                            title={recordAction?.reason}
+                            className="btn btn--primary btn--sm"
+                            disabled={!recordGate.enabled}
+                            title={recordGate.reason}
                             onClick={() => setRecordOpen(true)}
                         >
                             Registrar evento
@@ -126,8 +126,16 @@ export default function AdminShipmentDetailPage() {
                         onSuccess={() => void onRecordSuccess()}
                     />
                 ) : (
-                    <p className="text-sm text-muted mb-0">
-                        No se puede registrar el evento en este momento.
+                    <p className="text-sm text-muted mb-0" role="status">
+                        {!programId
+                            ? "Configure NEXT_PUBLIC_PROGRAM_ID en el despliegue."
+                            : !payer
+                              ? "Conecte la wallet para firmar la transacción."
+                              : !detail
+                                ? "Cargando datos del envío…"
+                                : !shipmentPda
+                                  ? `No se pudo resolver la cuenta del envío on-chain (#${detail.onChainShipmentId}).`
+                                  : "No se puede registrar el evento en este momento."}
                     </p>
                 )}
             </AdminModal>

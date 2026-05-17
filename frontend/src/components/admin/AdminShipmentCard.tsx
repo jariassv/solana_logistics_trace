@@ -11,8 +11,9 @@ import type { ShipmentListItem } from "@/lib/api/shipments";
 export type AdminShipmentCardProps = {
     shipment: ShipmentListItem;
     role: string | null;
-    programActive: boolean;
-    actorOnChain: boolean;
+    programConfigured: boolean;
+    actorOnChain: boolean | null;
+    actorLoading?: boolean;
     hasWallet: boolean;
     detailHref: string;
     onRecordEvent: (shipmentId: string) => void;
@@ -21,8 +22,9 @@ export type AdminShipmentCardProps = {
 export function AdminShipmentCard({
     shipment,
     role,
-    programActive,
+    programConfigured,
     actorOnChain,
+    actorLoading,
     hasWallet,
     detailHref,
     onRecordEvent,
@@ -30,8 +32,9 @@ export function AdminShipmentCard({
     const actions = shipmentCardActions({
         role,
         hasWallet,
-        programActive,
+        programConfigured,
         actorOnChain,
+        actorLoading,
     });
     const recordAction = actions.find((a) => a.id === "record_event");
 

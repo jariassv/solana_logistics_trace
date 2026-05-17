@@ -19,41 +19,60 @@ export type ShipmentCardAction = {
     reason?: string;
 };
 
+export function canRecordCheckpointAction(params: {
+    role: string | null;
+    hasWallet: boolean;
+    programConfigured: boolean;
+    actorOnChain: boolean | null;
+    actorLoading?: boolean;
+}): { enabled: boolean; reason?: string } {
+    const { role, hasWallet, programConfigured, actorOnChain, actorLoading } = params;
+
+    if (actorLoading) {
+        return { enabled: false, reason: "Cargando perfil…" };
+    }
+    if (!hasWallet) {
+        return { enabled: false, reason: "Conecte la wallet." };
+    }
+    if (!programConfigured) {
+        return { enabled: false, reason: "El programa no está configurado en el despliegue." };
+    }
+    if (!canRecordCheckpoint(role)) {
+        if (role === "Sender") {
+            return { enabled: false, reason: "El remitente no registra eventos logísticos." };
+        }
+        if (role === "Inspector") {
+            return { enabled: false, reason: "Rol de solo lectura." };
+        }
+        return { enabled: false, reason: "Su rol no puede registrar eventos." };
+    }
+    if (actorOnChain === false) {
+        return { enabled: false, reason: "Registre su actor en la página de registro." };
+    }
+    return { enabled: true };
+}
+
 export function shipmentCardActions(params: {
     role: string | null;
     hasWallet: boolean;
-    programActive: boolean;
-    actorOnChain: boolean;
+    programConfigured: boolean;
+    actorOnChain: boolean | null;
+    actorLoading?: boolean;
 }): ShipmentCardAction[] {
-    const { role, hasWallet, programActive, actorOnChain } = params;
-
-    const canRecord = canRecordCheckpoint(role);
-    const recordReason = !hasWallet
-        ? "Conecte la wallet."
-        : !programActive
-          ? "El programa no está activo en esta red."
-          : !actorOnChain
-            ? "Registre su actor en la página de registro."
-            : !canRecord
-              ? role === "Sender"
-                  ? "El remitente no registra eventos logísticos."
-                  : role === "Inspector"
-                    ? "Rol de solo lectura."
-                    : "Su rol no puede registrar eventos."
-              : undefined;
+    const recordGate = canRecordCheckpointAction(params);
 
     return [
         {
             id: "view_detail",
             label: "Ver detalle",
-            enabled: hasWallet,
-            reason: !hasWallet ? "Conecte la wallet." : undefined,
+            enabled: params.hasWallet,
+            reason: !params.hasWallet ? "Conecte la wallet." : undefined,
         },
         {
             id: "record_event",
             label: "Registrar evento",
-            enabled: Boolean(canRecord && programActive && actorOnChain && hasWallet),
-            reason: recordReason,
+            enabled: recordGate.enabled,
+            reason: recordGate.reason,
         },
     ];
 }
@@ -62,7 +81,7 @@ export function canCreateShipmentAction(params: {
     role: string | null;
     hasWallet: boolean;
     programActive: boolean;
-    actorOnChain: boolean;
+    actorOnChain: boolean | null;
 }): { enabled: boolean; reason?: string } {
     const { role, hasWallet, programActive, actorOnChain } = params;
     if (!hasWallet) {
@@ -71,7 +90,7 @@ export function canCreateShipmentAction(params: {
     if (!programActive) {
         return { enabled: false, reason: "El programa no está activo en esta red." };
     }
-    if (!actorOnChain) {
+    if (actorOnChain === false) {
         return { enabled: false, reason: "Registre su actor en la página de registro." };
     }
     if (!canSenderRegisterShipments(role)) {

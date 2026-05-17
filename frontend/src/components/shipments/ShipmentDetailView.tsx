@@ -27,14 +27,23 @@ export type ShipmentDetailViewProps = {
     showCheckpointTable?: boolean;
     showTimeline?: boolean;
     showMap?: boolean;
-    footer?: ReactNode;
+    summaryAction?: ReactNode;
     className?: string;
 };
 
-function SummaryGrid({ detail }: { detail: ShipmentDetail }) {
+function SummaryGrid({
+    detail,
+    summaryAction,
+}: {
+    detail: ShipmentDetail;
+    summaryAction?: ReactNode;
+}) {
     return (
         <div className="shipment-detail__summary card">
-            <div className="card__hd">Resumen</div>
+            <div className="card__hd shipment-detail__summary-hd">
+                <span className="shipment-detail__summary-title">Resumen</span>
+                {summaryAction}
+            </div>
             <div className="card__bd text-sm shipment-detail__grid">
                 <div>
                     <span className="text-muted">Estado</span>
@@ -125,7 +134,7 @@ export function ShipmentDetailView({
     showCheckpointTable = false,
     showTimeline = true,
     showMap = true,
-    footer,
+    summaryAction,
     className,
 }: ShipmentDetailViewProps) {
     const hasBody = showCheckpointTable || showTimeline || showMap;
@@ -135,7 +144,7 @@ export function ShipmentDetailView({
             {lead ? <div className="shipment-detail__lead">{lead}</div> : null}
 
             {summaryVariant === "grid" ? (
-                <SummaryGrid detail={detail} />
+                <SummaryGrid detail={detail} summaryAction={summaryAction} />
             ) : (
                 <SummaryProse detail={detail} />
             )}
@@ -183,8 +192,6 @@ export function ShipmentDetailView({
                     ) : null}
                 </div>
             ) : null}
-
-            {footer ? <footer className="shipment-detail__footer">{footer}</footer> : null}
         </div>
     );
 }
