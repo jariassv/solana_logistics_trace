@@ -7,7 +7,7 @@ export type AdminModalProps = {
     title: string;
     onClose: () => void;
     children: ReactNode;
-    size?: "md" | "lg";
+    size?: "md" | "lg" | "xl";
 };
 
 export function AdminModal({ open, title, onClose, children, size = "md" }: AdminModalProps) {
