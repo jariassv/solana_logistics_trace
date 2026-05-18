@@ -6,6 +6,7 @@ import { PublicKey as PK } from "@solana/web3.js";
 
 import { GeoPointField, type LocationInputMode } from "@/components/admin/GeoPointField";
 import { getRecipientActors, type RecipientOption } from "@/lib/api/actors";
+import { getProductsCatalog, type ProductCatalogItem } from "@/lib/api/products";
 import { apiBaseHasV1Prefix, normalizeApiBaseUrl } from "@/lib/api/backendConnectivity";
 import { postShipmentsSync } from "@/lib/api/sync";
 import {
@@ -48,7 +49,10 @@ export function CreateShipmentForm({
     const [recipientOptions, setRecipientOptions] = useState<RecipientOption[]>([]);
     const [recipientsLoading, setRecipientsLoading] = useState(false);
     const [recipientsLoadError, setRecipientsLoadError] = useState<string | null>(null);
-    const [product, setProduct] = useState("");
+    const [productCode, setProductCode] = useState("");
+    const [productOptions, setProductOptions] = useState<ProductCatalogItem[]>([]);
+    const [productsLoading, setProductsLoading] = useState(false);
+    const [productsLoadError, setProductsLoadError] = useState<string | null>(null);
     const [origin, setOrigin] = useState("");
     const [destination, setDestination] = useState("");
     const [coldChain, setColdChain] = useState(false);
@@ -102,6 +106,54 @@ export function CreateShipmentForm({
             cancel = true;
         };
     }, [apiBaseTrimmed, apiBaseWellFormed]);
+
+    useEffect(() => {
+        let cancel = false;
+        if (!apiBaseWellFormed) {
+            queueMicrotask(() => {
+                if (!cancel) {
+                    setProductOptions([]);
+                    setProductCode("");
+                    setProductsLoading(false);
+                    setProductsLoadError(null);
+                }
+            });
+            return () => {
+                cancel = true;
+            };
+        }
+        queueMicrotask(() => {
+            if (!cancel) {
+                setProductsLoading(true);
+                setProductsLoadError(null);
+            }
+        });
+        void getProductsCatalog(apiBaseTrimmed).then((res) => {
+            if (cancel) {
+                return;
+            }
+            if (res.ok) {
+                setProductOptions(res.data);
+                setProductsLoadError(null);
+                if (res.data.length === 1) {
+                    const only = res.data[0]!;
+                    setProductCode(only.code);
+                    setColdChain(only.requiresColdChain);
+                }
+            } else {
+                setProductOptions([]);
+                setProductCode("");
+                setProductsLoadError("No se pudo cargar el catálogo de productos.");
+            }
+            setProductsLoading(false);
+        });
+        return () => {
+            cancel = true;
+        };
+    }, [apiBaseTrimmed, apiBaseWellFormed]);
+
+    const selectedProduct =
+        productOptions.find((p) => p.code === productCode) ?? null;
 
     useEffect(() => {
         let cancel = false;
@@ -173,7 +225,7 @@ export function CreateShipmentForm({
                 sender: payer,
                 recipient: rec,
                 nextShipmentIndex: nextId,
-                product: product.trim(),
+                product: (selectedProduct?.label ?? "").trim(),
                 origin: origin.trim(),
                 destination: destination.trim(),
                 requiresColdChain: coldChain,
@@ -213,7 +265,7 @@ export function CreateShipmentForm({
         programId,
         payer,
         recipient,
-        product,
+        selectedProduct,
         origin,
         destination,
         coldChain,
@@ -227,8 +279,9 @@ export function CreateShipmentForm({
 
     const disabled =
         busy ||
-        !product.trim() ||
+        !productCode ||
         !recipient.trim() ||
+        (productOptions.length === 0 && !productsLoading && apiBaseWellFormed) ||
         Boolean(originErr) ||
         Boolean(destErr) ||
         recipientFieldValidationError(recipient.trim()) !== null ||
@@ -310,13 +363,54 @@ export function CreateShipmentForm({
             <div className="form-row">
                 <div className="form-group">
                     <label htmlFor="admin-ship-prod">Producto</label>
-                    <input
+                    <select
                         id="admin-ship-prod"
-                        className="input"
-                        value={product}
-                        disabled={busy}
-                        onChange={(e) => setProduct(e.target.value)}
-                    />
+                        className="select"
+                        value={productCode}
+                        disabled={busy || productsLoading || productOptions.length === 0}
+                        onChange={(e) => {
+                            const code = e.target.value;
+                            setProductCode(code);
+                            const item = productOptions.find((p) => p.code === code);
+                            if (item) {
+                                setColdChain(item.requiresColdChain);
+                            }
+                        }}
+                    >
+                        <option value="">
+                            {productsLoading
+                                ? "Cargando productos…"
+                                : productOptions.length === 0
+                                  ? "Sin productos en catálogo"
+                                  : "Seleccione un producto"}
+                        </option>
+                        {productOptions.map((p) => (
+                            <option key={p.code} value={p.code}>
+                                {p.label}
+                                {p.category ? ` (${p.category})` : ""}
+                            </option>
+                        ))}
+                    </select>
+                    {productsLoadError ? (
+                        <p className="text-sm admin-form__err mb-0 mt-1" role="alert">
+                            {productsLoadError}
+                        </p>
+                    ) : null}
+                    {selectedProduct ? (
+                        <div
+                            className="text-xs text-muted mb-0 mt-2 p-2 border border-default rounded"
+                            role="status"
+                        >
+                            <p className="mb-1">{selectedProduct.description}</p>
+                            <p className="mb-0">
+                                <strong>Embalaje:</strong>{" "}
+                                {selectedProduct.packagingLabel || selectedProduct.packagingType}
+                                {" · "}
+                                <strong>Cadena de frío:</strong>{" "}
+                                {selectedProduct.requiresColdChain ? "Requerida" : "No requerida"}
+                            </p>
+                        </div>
+                    ) : null}
                 </div>
                 <div className="form-group">
                     <label htmlFor="admin-ship-cold">Cadena de frío</label>
