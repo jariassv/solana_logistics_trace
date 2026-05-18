@@ -86,6 +86,101 @@ pub async fn load_shipment_context(
     }))
 }
 
+pub async fn id_by_tx_hash(pool: &PgPool, tx_hash: &str) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar(r#"SELECT id FROM incidents WHERE tx_hash = $1"#)
+        .bind(tx_hash)
+        .fetch_optional(pool)
+        .await
+}
+
+pub async fn insert_on_chain(
+    pool: &PgPool,
+    shipment_id: Uuid,
+    incident_type: &str,
+    severity: &str,
+    description: &str,
+    evidence_hash_hex: &str,
+    created_by_wallet: &str,
+    tx_hash: &str,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"INSERT INTO incidents (
+               shipment_id, incident_type, severity, status, source,
+               description, detected_at, evidence_hash, created_by_wallet, tx_hash
+           ) VALUES ($1, $2, $3, 'Open', 'on_chain', $4, now(), $5, $6, $7)
+           RETURNING id"#,
+    )
+    .bind(shipment_id)
+    .bind(incident_type)
+    .bind(severity)
+    .bind(description)
+    .bind(evidence_hash_hex)
+    .bind(created_by_wallet)
+    .bind(tx_hash)
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn list_for_wallet(
+    pool: &PgPool,
+    wallet: &str,
+    operational_inventory: bool,
+) -> Result<Vec<IncidentRow>, sqlx::Error> {
+    let rows = if operational_inventory {
+        sqlx::query(
+            r#"SELECT id, shipment_id, incident_type, severity, status, source,
+                      description, detected_at, resolved_at, evidence_json, rule_name, tx_hash
+               FROM incidents
+               ORDER BY detected_at DESC
+               LIMIT 500"#,
+        )
+        .fetch_all(pool)
+        .await?
+    } else {
+        sqlx::query(
+            r#"SELECT i.id, i.shipment_id, i.incident_type, i.severity, i.status, i.source,
+                      i.description, i.detected_at, i.resolved_at, i.evidence_json, i.rule_name, i.tx_hash
+               FROM incidents i
+               INNER JOIN shipments s ON s.id = i.shipment_id
+               WHERE s.sender_wallet = $1 OR s.recipient_wallet = $1
+               ORDER BY i.detected_at DESC
+               LIMIT 500"#,
+        )
+        .bind(wallet)
+        .fetch_all(pool)
+        .await?
+    };
+
+    rows.iter().map(row_from_pg).collect()
+}
+
+pub async fn get_by_id(pool: &PgPool, incident_id: Uuid) -> Result<Option<IncidentRow>, sqlx::Error> {
+    let row = sqlx::query(
+        r#"SELECT id, shipment_id, incident_type, severity, status, source,
+                  description, detected_at, resolved_at, evidence_json, rule_name, tx_hash
+           FROM incidents WHERE id = $1"#,
+    )
+    .bind(incident_id)
+    .fetch_optional(pool)
+    .await?;
+
+    row.as_ref().map(row_from_pg).transpose()
+}
+
+pub async fn resolve_open(
+    pool: &PgPool,
+    incident_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        r#"UPDATE incidents SET status = 'Resolved', resolved_at = now()
+           WHERE id = $1 AND status = 'Open'"#,
+    )
+    .bind(incident_id)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected() > 0)
+}
+
 pub async fn list_by_shipment(
     pool: &PgPool,
     shipment_id: Uuid,

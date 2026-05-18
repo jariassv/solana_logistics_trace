@@ -1,15 +1,16 @@
-//! GET incidencias por envío (off-chain + on-chain replicadas).
+//! Incidencias — consulta, sync (vía `handlers/sync`) y resolución off-chain.
 
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::{get, State};
+use rocket::{get, post, State};
 use serde::Serialize;
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::access::operational_roles_see_all_shipments;
 use crate::incident_engine::repositories::incidents::{self, IncidentRow};
-use crate::repos::shipments;
+use crate::repos::{actors, shipments};
 use crate::wallet_query::{require_wallet_form, WalletQuery};
 
 #[derive(Debug, Serialize)]
@@ -42,6 +43,90 @@ fn row_to_api(r: IncidentRow) -> IncidentApiItem {
         rule_name: r.rule_name,
         tx_hash: r.tx_hash,
     }
+}
+
+async fn wallet_may_view_incident(
+    pool: &PgPool,
+    incident: &IncidentRow,
+    wallet: &str,
+) -> Result<bool, sqlx::Error> {
+    if shipments::select_shipment_detail_for_wallet(pool, incident.shipment_id, wallet)
+        .await?
+        .is_some()
+    {
+        return Ok(true);
+    }
+    Ok(false)
+}
+
+#[get("/incidents?<q..>")]
+pub async fn list_incidents(
+    pool: &State<PgPool>,
+    q: WalletQuery<'_>,
+) -> Result<Json<Vec<IncidentApiItem>>, (Status, Json<Value>)> {
+    let w = require_wallet_form(&q)?;
+    let role = actors::select_role_for_wallet(pool.inner(), w)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+    let operational = role
+        .as_deref()
+        .is_some_and(operational_roles_see_all_shipments);
+
+    let rows = incidents::list_for_wallet(pool.inner(), w, operational)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+
+    Ok(Json(rows.into_iter().map(row_to_api).collect()))
+}
+
+#[get("/incidents/<incident_id>?<q..>")]
+pub async fn get_incident(
+    pool: &State<PgPool>,
+    incident_id: Uuid,
+    q: WalletQuery<'_>,
+) -> Result<Json<IncidentApiItem>, (Status, Json<Value>)> {
+    let w = require_wallet_form(&q)?;
+    let row = incidents::get_by_id(pool.inner(), incident_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                Status::NotFound,
+                Json(json!({"error": "incident not found"})),
+            )
+        })?;
+
+    if !wallet_may_view_incident(pool.inner(), &row, w)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?
+    {
+        return Err((
+            Status::NotFound,
+            Json(json!({"error": "incident not found"})),
+        ));
+    }
+
+    Ok(Json(row_to_api(row)))
 }
 
 #[get("/shipments/<shipment_id>/incidents?<q..>")]
@@ -77,4 +162,77 @@ pub async fn list_shipment_incidents(
         })?;
 
     Ok(Json(rows.into_iter().map(row_to_api).collect()))
+}
+
+#[post("/incidents/<incident_id>/resolve?<q..>")]
+pub async fn resolve_incident(
+    pool: &State<PgPool>,
+    incident_id: Uuid,
+    q: WalletQuery<'_>,
+) -> Result<Json<IncidentApiItem>, (Status, Json<Value>)> {
+    let w = require_wallet_form(&q)?;
+    let row = incidents::get_by_id(pool.inner(), incident_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                Status::NotFound,
+                Json(json!({"error": "incident not found"})),
+            )
+        })?;
+
+    if !wallet_may_view_incident(pool.inner(), &row, w)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?
+    {
+        return Err((
+            Status::NotFound,
+            Json(json!({"error": "incident not found"})),
+        ));
+    }
+
+    if row.status != "Open" {
+        return Err((
+            Status::Conflict,
+            Json(json!({"error": "incident is not open"})),
+        ));
+    }
+
+    let updated = incidents::resolve_open(pool.inner(), incident_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+
+    if !updated {
+        return Err((
+            Status::Conflict,
+            Json(json!({"error": "incident could not be resolved"})),
+        ));
+    }
+
+    let row = incidents::get_by_id(pool.inner(), incident_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?
+        .expect("incident row after resolve");
+
+    Ok(Json(row_to_api(row)))
 }
