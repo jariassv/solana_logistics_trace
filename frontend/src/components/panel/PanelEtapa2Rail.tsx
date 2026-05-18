@@ -16,6 +16,7 @@ export function PanelEtapa2Rail() {
 
     const resumenActive = pathname === "/panel" || pathname === "/panel/";
     const enviosActive = pathname.startsWith("/panel/envios");
+    const incidentesActive = pathname.startsWith("/panel/incidentes");
     const adminActive = pathname.startsWith("/admin");
     return (
         <aside className="panel-etapa2-rail" aria-label="Navegación del panel">
@@ -34,6 +35,9 @@ export function PanelEtapa2Rail() {
                 </Link>
                 <Link prefetch={false} className={linkClass(enviosActive)} href="/panel/envios">
                     Envíos
+                </Link>
+                <Link prefetch={false} className={linkClass(incidentesActive)} href="/panel/incidentes">
+                    Incidencias
                 </Link>
                 {wallet ? (
                     <Link prefetch={false} className={linkClass(adminActive)} href="/admin">

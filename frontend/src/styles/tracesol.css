@@ -2117,3 +2117,118 @@ table.data-table {
   color: var(--color-text-muted);
   line-height: 1.55;
 }
+
+/* —— Incident Intelligence (Etapa 3) —— */
+.shipment-incidents__hd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.shipment-incidents__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.incident-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.incident-list__item {
+  margin: 0;
+}
+
+.incident-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated, var(--color-bg-card));
+  overflow: hidden;
+}
+
+.incident-card--compact {
+  border-radius: var(--radius-sm);
+}
+
+.incident-card__hd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-accent-bg);
+}
+
+.incident-card__title {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.incident-card__bd {
+  padding: 0.85rem 1rem;
+}
+
+.incident-card__facts p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.badge--muted {
+  background: var(--color-accent-bg);
+  color: var(--color-text-muted);
+}
+
+.incident-hub-list {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.incident-hub-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.incident-hub-list__product {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.incident-hub-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.shipment-incidents__subtitle {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.telemetry-panel__table {
+  font-size: 0.82rem;
+}

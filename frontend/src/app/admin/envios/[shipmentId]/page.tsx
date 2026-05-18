@@ -6,7 +6,10 @@ import { useParams } from "next/navigation";
 
 import { AdminModal } from "@/components/admin/AdminModal";
 import { RecordCheckpointForm } from "@/components/admin/RecordCheckpointForm";
+import { ReportCriticalIncidentForm } from "@/components/admin/ReportCriticalIncidentForm";
 import { ShipmentDetailView } from "@/components/shipments/ShipmentDetailView";
+import { ShipmentIncidentsSection } from "@/components/shipments/ShipmentIncidentsSection";
+import { canReportCriticalIncidentAction } from "@/lib/admin/incidentActions";
 import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
 import { canRecordCheckpointAction } from "@/lib/admin/shipmentActions";
 import { useAdminState } from "@/lib/admin/useAdminState";
@@ -32,6 +35,7 @@ export default function AdminShipmentDetailPage() {
         wallet,
     );
     const [recordOpen, setRecordOpen] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
 
     const shipmentPda = useMemo(() => {
         if (!detail) {
@@ -48,12 +52,26 @@ export default function AdminShipmentDetailPage() {
         actorLoading,
     });
 
+    const reportGate = canReportCriticalIncidentAction({
+        role,
+        hasWallet: Boolean(wallet),
+        programConfigured: Boolean(programId),
+        actorOnChain,
+        actorLoading,
+    });
+
     const onRecordSuccess = useCallback(async () => {
         await refreshAll();
         await refreshActor();
         await reload();
         setRecordOpen(false);
     }, [refreshAll, refreshActor, reload]);
+
+    const onReportSuccess = useCallback(async () => {
+        await refreshAll();
+        await reload();
+        setReportOpen(false);
+    }, [refreshAll, reload]);
 
     return (
         <div className="admin-workspace admin-workspace--detail">
@@ -89,24 +107,44 @@ export default function AdminShipmentDetailPage() {
             )}
 
             {detail && (
-                <ShipmentDetailView
-                    detail={detail}
-                    summaryVariant="grid"
-                    showCheckpointTable
-                    showTimeline
-                    showMap
-                    summaryAction={
-                        <button
-                            type="button"
-                            className="btn btn--primary btn--sm"
-                            title={recordGate.reason}
-                            aria-disabled={!recordGate.enabled}
-                            onClick={() => setRecordOpen(true)}
-                        >
-                            Registrar evento
-                        </button>
-                    }
-                />
+                <>
+                    <ShipmentDetailView
+                        detail={detail}
+                        summaryVariant="grid"
+                        showCheckpointTable
+                        showTimeline
+                        showMap
+                        summaryAction={
+                            <div className="admin-detail-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn--primary btn--sm"
+                                    title={recordGate.reason}
+                                    aria-disabled={!recordGate.enabled}
+                                    onClick={() => setRecordOpen(true)}
+                                >
+                                    Registrar evento
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn--ghost btn--sm"
+                                    title={reportGate.reason}
+                                    aria-disabled={!reportGate.enabled}
+                                    onClick={() => setReportOpen(true)}
+                                >
+                                    Reportar crítica
+                                </button>
+                            </div>
+                        }
+                    />
+                    {cfg.apiBaseUrl?.trim() ? (
+                        <ShipmentIncidentsSection
+                            apiBaseUrl={cfg.apiBaseUrl}
+                            shipmentId={shipmentId}
+                            wallet={wallet}
+                        />
+                    ) : null}
+                </>
             )}
 
             <AdminModal
@@ -141,6 +179,37 @@ export default function AdminShipmentDetailPage() {
                                 : !shipmentPda
                                   ? `No se pudo resolver la cuenta del envío on-chain (#${detail.onChainShipmentId}).`
                                   : "No se puede registrar el evento en este momento."}
+                    </p>
+                )}
+            </AdminModal>
+
+            <AdminModal
+                open={reportOpen}
+                title="Incidencia crítica on-chain"
+                onClose={() => setReportOpen(false)}
+                size="lg"
+            >
+                {!reportGate.enabled ? (
+                    <p className="text-sm mb-0" role="status">
+                        {reportGate.reason ?? "No puede reportar con su rol o perfil actual."}
+                    </p>
+                ) : programId && payer && detail && shipmentPda ? (
+                    <ReportCriticalIncidentForm
+                        connection={connection}
+                        programId={programId}
+                        payer={payer}
+                        shipmentPda={shipmentPda}
+                        shipmentServiceId={detail.shipmentId}
+                        apiBaseUrl={cfg.apiBaseUrl}
+                        onSuccess={() => void onReportSuccess()}
+                    />
+                ) : (
+                    <p className="text-sm text-muted mb-0" role="status">
+                        {!programId
+                            ? "Configure NEXT_PUBLIC_PROGRAM_ID en el despliegue."
+                            : !payer
+                              ? "Conecte la wallet para firmar la transacción."
+                              : "No se puede reportar en este momento."}
                     </p>
                 )}
             </AdminModal>
