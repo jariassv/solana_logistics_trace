@@ -44,6 +44,50 @@ pub async fn latest_recorded_at(
     .await
 }
 
+#[derive(Debug)]
+pub struct TelemetryRow {
+    pub id: Uuid,
+    pub shipment_id: Uuid,
+    pub telemetry_type: String,
+    pub value_numeric: Option<f64>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub recorded_at: DateTime<Utc>,
+}
+
+pub async fn list_by_shipment(
+    pool: &PgPool,
+    shipment_id: Uuid,
+    limit: i64,
+) -> Result<Vec<TelemetryRow>, sqlx::Error> {
+    let rows = sqlx::query(
+        r#"SELECT id, shipment_id, telemetry_type, value_numeric, latitude, longitude, recorded_at
+           FROM telemetry_events
+           WHERE shipment_id = $1
+           ORDER BY recorded_at DESC
+           LIMIT $2"#,
+    )
+    .bind(shipment_id)
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+
+    rows.iter()
+        .map(|row| {
+            use sqlx::Row;
+            Ok(TelemetryRow {
+                id: row.try_get("id")?,
+                shipment_id: row.try_get("shipment_id")?,
+                telemetry_type: row.try_get("telemetry_type")?,
+                value_numeric: row.try_get("value_numeric")?,
+                latitude: row.try_get("latitude")?,
+                longitude: row.try_get("longitude")?,
+                recorded_at: row.try_get("recorded_at")?,
+            })
+        })
+        .collect()
+}
+
 pub async fn latest_temperature(
     pool: &PgPool,
     shipment_id: Uuid,
