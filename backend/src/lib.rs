@@ -47,6 +47,7 @@ pub fn build_rocket(
                 handlers::shipments::list_shipment_checkpoints,
                 handlers::shipments::get_shipment,
                 handlers::public_shipments::get_public_shipment,
+                handlers::actors::list_recipients,
                 handlers::actors::get_actor_me,
             ],
         )
