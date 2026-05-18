@@ -211,6 +211,68 @@ async fn shipment_incidents_returns_500_when_database_unreachable() {
 }
 
 #[tokio::test]
+async fn incidents_list_returns_500_when_database_unreachable() {
+    let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
+    let response = client
+        .get("/api/v1/incidents?wallet=11111111111111111111111111111111")
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::InternalServerError);
+}
+
+#[tokio::test]
+async fn shipment_telemetry_returns_500_when_database_unreachable() {
+    let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
+    let response = client
+        .get("/api/v1/shipments/00000000-0000-4000-8000-000000000001/telemetry?wallet=11111111111111111111111111111111")
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::InternalServerError);
+}
+
+#[tokio::test]
+async fn incidents_sync_returns_503_when_program_id_unconfigured() {
+    let pool = lazy_unreachable_pool();
+    let cors = cors_for_origins(&["http://localhost:3000".into()]);
+    let mut cfg = AppConfig::for_tests();
+    cfg.program_id.clear();
+    let solana: Arc<dyn SolanaRpcClient> = Arc::new(MockSolanaOk);
+    let rocket = build_rocket(pool, cors, solana, cfg);
+    let client = Client::tracked(rocket).await.expect("client");
+
+    let fake_sig = bs58::encode([0u8; 64]).into_string();
+    let response = client
+        .post("/api/v1/incidents/sync")
+        .header(ContentType::JSON)
+        .body(json!({ "tx_hash": fake_sig }).to_string())
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::ServiceUnavailable);
+}
+
+#[tokio::test]
+async fn incidents_sync_returns_422_when_instruction_discriminator_mismatch() {
+    let pool = lazy_unreachable_pool();
+    let cors = cors_for_origins(&["http://localhost:3000".into()]);
+    let mut cfg = AppConfig::for_tests();
+    cfg.program_id = "BPFLoaderUpgradeab1e11111111111111111111111".into();
+    let solana: Arc<dyn SolanaRpcClient> = Arc::new(MockSolanaTxWrongDiscriminator);
+    let rocket = build_rocket(pool, cors, solana, cfg);
+    let client = Client::tracked(rocket).await.expect("client");
+
+    let fake_sig = bs58::encode([0u8; 64]).into_string();
+    let response = client
+        .post("/api/v1/incidents/sync")
+        .header(ContentType::JSON)
+        .body(json!({ "tx_hash": fake_sig }).to_string())
+        .dispatch()
+        .await;
+
+    assert_eq!(response.status(), Status::UnprocessableEntity);
+}
+
+#[tokio::test]
 async fn catalogs_locations_returns_500_when_database_unreachable() {
     let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
     let response = client

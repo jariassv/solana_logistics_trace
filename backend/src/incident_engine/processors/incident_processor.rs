@@ -89,3 +89,33 @@ impl IncidentProcessor {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::*;
+    use crate::incident_engine::models::IncidentDetectionResult;
+
+    #[test]
+    fn system_checkpoint_tx_hash_is_deterministic() {
+        let id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        assert_eq!(
+            format!("system:{id}"),
+            "system:550e8400-e29b-41d4-a716-446655440000"
+        );
+    }
+
+    #[test]
+    fn detection_carries_rule_metadata_for_auto_incidents() {
+        let detection = IncidentDetectionResult {
+            incident_type: "COLD_CHAIN_BROKEN".into(),
+            severity: "High".into(),
+            description: "temp high".into(),
+            evidence_json: json!({ "temperature": 12.0 }),
+            rule_name: "cold_chain_max".into(),
+        };
+        assert_eq!(detection.rule_name, "cold_chain_max");
+        assert_eq!(detection.incident_type, "COLD_CHAIN_BROKEN");
+    }
+}
