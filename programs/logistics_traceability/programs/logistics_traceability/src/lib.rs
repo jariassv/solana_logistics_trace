@@ -71,4 +71,15 @@ pub mod logistics_traceability {
     pub fn confirm_delivery(ctx: Context<ConfirmDelivery>) -> Result<()> {
         process_confirm_delivery(ctx)
     }
+
+    /// Sender, recipient, or carrier reports a critical incident (hash of off-chain evidence).
+    pub fn report_critical_incident(
+        ctx: Context<ReportCriticalIncident>,
+        incident_type: CriticalIncidentType,
+        severity: OnChainIncidentSeverity,
+        evidence_hash: [u8; 32],
+        description: String,
+    ) -> Result<()> {
+        process_report_critical_incident(ctx, incident_type, severity, evidence_hash, description)
+    }
 }

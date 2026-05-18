@@ -22,4 +22,6 @@ pub enum ErrorCode {
     ShipmentAlreadyClosed,
     #[msg("Delivery can only be confirmed when shipment is out for delivery")]
     InvalidShipmentStatusForConfirm,
+    #[msg("Only sender, recipient, or carrier may report a critical incident")]
+    UnauthorizedIncidentReporter,
 }
