@@ -53,6 +53,7 @@ pub fn build_rocket(
                 handlers::public_shipments::get_public_shipment,
                 handlers::actors::list_recipients,
                 handlers::actors::get_actor_me,
+                handlers::incidents::get_incidents_hub,
                 handlers::incidents::list_incidents,
                 handlers::incidents::get_incident,
                 handlers::incidents::list_shipment_incidents,

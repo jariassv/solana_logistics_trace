@@ -15,6 +15,36 @@ use crate::wallet_query::{require_wallet_form, WalletQuery};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct IncidentHubSummaryJson {
+    pub total_incidents: i64,
+    pub open_incidents: i64,
+    pub resolved_incidents: i64,
+    pub critical_open: i64,
+    pub high_open: i64,
+    pub auto_detections: i64,
+    pub on_chain_reports: i64,
+    pub shipments_with_incidents: i64,
+    pub active_monitoring: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IncidentHubRecentJson {
+    #[serde(flatten)]
+    pub incident: IncidentApiItem,
+    pub shipment_product: String,
+    pub shipment_status: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IncidentHubJson {
+    pub summary: IncidentHubSummaryJson,
+    pub recent: Vec<IncidentHubRecentJson>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IncidentApiItem {
     pub id: Uuid,
     pub shipment_id: Uuid,
@@ -57,6 +87,65 @@ async fn wallet_may_view_incident(
         return Ok(true);
     }
     Ok(false)
+}
+
+#[get("/incidents/hub?<q..>")]
+pub async fn get_incidents_hub(
+    pool: &State<PgPool>,
+    q: WalletQuery<'_>,
+) -> Result<Json<IncidentHubJson>, (Status, Json<Value>)> {
+    let w = require_wallet_form(&q)?;
+    let role = actors::select_role_for_wallet(pool.inner(), w)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+    let operational = role
+        .as_deref()
+        .is_some_and(operational_roles_see_all_shipments);
+
+    let summary = incidents::summary_for_wallet(pool.inner(), w, operational)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+
+    let recent_rows = incidents::recent_for_wallet(pool.inner(), w, operational, 30)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+
+    Ok(Json(IncidentHubJson {
+        summary: IncidentHubSummaryJson {
+            total_incidents: summary.total_incidents,
+            open_incidents: summary.open_incidents,
+            resolved_incidents: summary.resolved_incidents,
+            critical_open: summary.critical_open,
+            high_open: summary.high_open,
+            auto_detections: summary.auto_detections,
+            on_chain_reports: summary.on_chain_reports,
+            shipments_with_incidents: summary.shipments_with_incidents,
+            active_monitoring: summary.active_monitoring,
+        },
+        recent: recent_rows
+            .into_iter()
+            .map(|row| IncidentHubRecentJson {
+                incident: row_to_api(row.incident),
+                shipment_product: row.shipment_product,
+                shipment_status: row.shipment_status,
+            })
+            .collect(),
+    }))
 }
 
 #[get("/incidents?<q..>")]
