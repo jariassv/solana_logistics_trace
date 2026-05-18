@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Connection, PublicKey } from "@solana/web3.js";
 
+import { CheckpointMetadataField } from "@/components/admin/CheckpointMetadataField";
 import { GeoPointField, type LocationInputMode } from "@/components/admin/GeoPointField";
+import {
+    buildCheckpointMetadataJson,
+    EMPTY_CHECKPOINT_METADATA_FORM,
+    type CheckpointMetadataFormState,
+} from "@/lib/checkpoint/checkpointMetadata";
 import { apiBaseHasV1Prefix, normalizeApiBaseUrl } from "@/lib/api/backendConnectivity";
 import { loadCheckpointSelectOptions } from "@/lib/api/catalogs";
 import { postCheckpointsSync } from "@/lib/api/sync";
@@ -44,21 +50,6 @@ function coordsForChain(p: GeoPoint | null): { lat: number | null; lng: number |
     return { lat: Math.round(p.lat), lng: Math.round(p.lng) };
 }
 
-function mergeMetadataWithCoords(metadata: string, p: GeoPoint | null): string {
-    if (!p) {
-        return metadata.trim();
-    }
-    try {
-        const base = metadata.trim() ? (JSON.parse(metadata) as Record<string, unknown>) : {};
-        if (typeof base !== "object" || base === null || Array.isArray(base)) {
-            return JSON.stringify({ lat: p.lat, lng: p.lng });
-        }
-        return JSON.stringify({ ...base, lat: p.lat, lng: p.lng });
-    } catch {
-        return JSON.stringify({ lat: p.lat, lng: p.lng });
-    }
-}
-
 export type RecordCheckpointFormProps = {
     connection: Connection;
     programId: PublicKey;
@@ -93,7 +84,9 @@ export function RecordCheckpointForm({
     const [coordMode, setCoordMode] = useState<LocationInputMode>("coordinates");
     const [temp, setTemp] = useState("");
     const [humidity, setHumidity] = useState("");
-    const [metadata, setMetadata] = useState("{}");
+    const [metadataForm, setMetadataForm] = useState<CheckpointMetadataFormState>(
+        EMPTY_CHECKPOINT_METADATA_FORM,
+    );
     const [apiCpRows, setApiCpRows] = useState<CatalogOptionRow<CheckpointTypeCode>[] | null>(null);
     const [catalogsLoading, setCatalogsLoading] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -163,7 +156,16 @@ export function RecordCheckpointForm({
             const nextCp = cur.decoded.checkpointsRecorded + BigInt(1);
             const coords = coordMode === "coordinates" ? parseGeoPoint(coordValue) : null;
             const { lat: latNum, lng: lngNum } = coordsForChain(coords);
-            const metaOut = mergeMetadataWithCoords(metadata, coords);
+            const coordPreview =
+                coords !== null ? { lat: coords.lat, lng: coords.lng } : null;
+            const { json: metaOut, error: metaErr } = buildCheckpointMetadataJson(
+                metadataForm,
+                coordPreview,
+            );
+            if (metaErr) {
+                setBanner({ kind: "err", text: metaErr });
+                return;
+            }
             const tmpNum: number | null = temp.trim() === "" ? null : Number.parseInt(temp, 10);
             const humNum: number | null =
                 humidity.trim() === "" ? null : Number.parseInt(humidity, 10);
@@ -220,7 +222,7 @@ export function RecordCheckpointForm({
         coordMode,
         temp,
         humidity,
-        metadata,
+        metadataForm,
         apiBaseUrl,
         onSuccess,
     ]);
@@ -309,10 +311,14 @@ export function RecordCheckpointForm({
                     />
                 </div>
             </div>
-            <div className="form-group">
-                <label htmlFor="admin-cp-meta">Metadata JSON</label>
-                <input id="admin-cp-meta" className="input mono" value={metadata} disabled={busy} onChange={(e) => setMetadata(e.target.value)} />
-            </div>
+            <CheckpointMetadataField
+                value={metadataForm}
+                onChange={setMetadataForm}
+                disabled={busy}
+                previewCoords={
+                    coordMode === "coordinates" ? parseGeoPoint(coordValue) : null
+                }
+            />
 
             <button
                 type="submit"
