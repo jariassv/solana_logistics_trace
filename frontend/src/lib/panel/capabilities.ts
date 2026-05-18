@@ -34,6 +34,14 @@ export function canReportCriticalIncident(role: string | null): boolean {
     return role === "Sender" || role === "Carrier" || role === "Recipient";
 }
 
+/** Cierre operativo off-chain: participantes y roles operativos (no Inspector). */
+export function canResolveIncident(role: string | null): boolean {
+    if (role === "Inspector") {
+        return false;
+    }
+    return role !== null;
+}
+
 /** Carrier, Hub y Recipient registran checkpoints on-chain. */
 export function canRecordCheckpoint(role: string | null): boolean {
     return role === "Carrier" || role === "Hub" || role === "Recipient";

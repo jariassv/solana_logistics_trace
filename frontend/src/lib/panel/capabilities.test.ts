@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     canRecordCheckpoint,
     canReportCriticalIncident,
+    canResolveIncident,
     checkpointTypeCodesForRole,
     canSenderRegisterShipments,
     canUseChainOperationsNav,
@@ -27,6 +28,14 @@ describe("panel capabilities", () => {
     it("allows only Sender to register shipments", () => {
         expect(canSenderRegisterShipments("Sender")).toBe(true);
         expect(canSenderRegisterShipments("Carrier")).toBe(false);
+    });
+
+    it("allows operational roles except Inspector to resolve incidents", () => {
+        expect(canResolveIncident("Carrier")).toBe(true);
+        expect(canResolveIncident("Hub")).toBe(true);
+        expect(canResolveIncident("Sender")).toBe(true);
+        expect(canResolveIncident("Inspector")).toBe(false);
+        expect(canResolveIncident(null)).toBe(false);
     });
 
     it("allows Sender, Carrier, and Recipient to report critical incidents", () => {

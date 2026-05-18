@@ -20,6 +20,10 @@ export type IncidentsGetResult =
     | { ok: true; status: number; data: IncidentItem[] }
     | { ok: false; status: number; body: unknown };
 
+export type IncidentResolveResult =
+    | { ok: true; status: number; data: IncidentItem }
+    | { ok: false; status: number; body: unknown };
+
 function joinBase(apiBaseUrl: string, pathSegment: string): string {
     const base = apiBaseUrl.replace(/\/+$/, "");
     const path = pathSegment.replace(/^\/+/, "");
@@ -100,4 +104,36 @@ export async function getShipmentIncidents(
         }
     }
     return { ok: true, status: res.status, data };
+}
+
+export async function postResolveIncident(
+    apiBaseUrl: string,
+    incidentId: string,
+    wallet: string,
+    signal?: AbortSignal,
+): Promise<IncidentResolveResult> {
+    const path = `incidents/${encodeURIComponent(incidentId)}/resolve`;
+    const url = `${joinBase(apiBaseUrl, path)}?wallet=${encodeURIComponent(wallet)}`;
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        signal,
+    });
+    const text = await res.text();
+    let body: unknown = null;
+    if (text) {
+        try {
+            body = JSON.parse(text) as unknown;
+        } catch {
+            body = text;
+        }
+    }
+    if (!res.ok) {
+        return { ok: false, status: res.status, body };
+    }
+    const item = parseIncidentItem(body);
+    if (!item) {
+        return { ok: false, status: res.status, body };
+    }
+    return { ok: true, status: res.status, data: item };
 }

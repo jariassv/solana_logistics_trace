@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { IncidentHubFiltersPanel } from "@/components/incidents/IncidentHubFilters";
 import { IncidentHubRecentTable } from "@/components/incidents/IncidentHubRecentTable";
 import { IncidentHubStats } from "@/components/incidents/IncidentHubStats";
+import { postResolveIncident } from "@/lib/api/incidents";
 import { useIncidentsHub } from "@/lib/api/useIncidentsHub";
+import { incidentTypeLabel } from "@/lib/incidents/display";
 import {
     EMPTY_INCIDENT_HUB_FILTERS,
     filterIncidentHubRecent,
@@ -13,7 +15,7 @@ import {
     uniqueIncidentSources,
     type IncidentHubFilters,
 } from "@/lib/incidents/hubFilters";
-import { roleDisplayName } from "@/lib/panel/capabilities";
+import { canResolveIncident, roleDisplayName } from "@/lib/panel/capabilities";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 export type IncidentHubWorkspaceProps = {
@@ -24,6 +26,13 @@ export function IncidentHubWorkspace({ apiBaseUrl }: IncidentHubWorkspaceProps) 
     const { wallet, role, actorLoading } = useWalletSession();
     const { data, loading, error, reload } = useIncidentsHub(apiBaseUrl, wallet);
     const [filters, setFilters] = useState<IncidentHubFilters>(EMPTY_INCIDENT_HUB_FILTERS);
+    const [resolvingId, setResolvingId] = useState<string | null>(null);
+    const [actionBanner, setActionBanner] = useState<{
+        kind: "ok" | "err";
+        text: string;
+    } | null>(null);
+
+    const mayResolve = canResolveIncident(role);
 
     const recent = useMemo(() => data?.recent ?? [], [data]);
     const filtered = useMemo(
@@ -32,6 +41,45 @@ export function IncidentHubWorkspace({ apiBaseUrl }: IncidentHubWorkspaceProps) 
     );
     const severityOptions = useMemo(() => uniqueIncidentSeverities(recent), [recent]);
     const sourceOptions = useMemo(() => uniqueIncidentSources(recent), [recent]);
+
+    const handleResolve = useCallback(
+        async (incidentId: string) => {
+            if (!wallet || !mayResolve) {
+                return;
+            }
+            setResolvingId(incidentId);
+            setActionBanner(null);
+            try {
+                const res = await postResolveIncident(apiBaseUrl, incidentId, wallet);
+                if (res.ok) {
+                    setActionBanner({
+                        kind: "ok",
+                        text: `Incidencia resuelta (${incidentTypeLabel(res.data.incidentType)}).`,
+                    });
+                    await reload();
+                } else if (res.status === 409) {
+                    setActionBanner({
+                        kind: "err",
+                        text: "La incidencia ya estaba cerrada o no pudo resolverse.",
+                    });
+                    await reload();
+                } else {
+                    setActionBanner({
+                        kind: "err",
+                        text: `No se pudo resolver (HTTP ${res.status}).`,
+                    });
+                }
+            } catch (e) {
+                setActionBanner({
+                    kind: "err",
+                    text: e instanceof Error ? e.message : "Error de red al resolver.",
+                });
+            } finally {
+                setResolvingId(null);
+            }
+        },
+        [apiBaseUrl, mayResolve, reload, wallet],
+    );
 
     return (
         <div className="admin-workspace incident-hub-workspace">
@@ -63,6 +111,21 @@ export function IncidentHubWorkspace({ apiBaseUrl }: IncidentHubWorkspaceProps) 
                 </p>
             ) : null}
 
+            {actionBanner ? (
+                <p
+                    className={`text-sm mb-0${actionBanner.kind === "err" ? " admin-form__err" : ""}`}
+                    role={actionBanner.kind === "err" ? "alert" : "status"}
+                >
+                    {actionBanner.text}
+                </p>
+            ) : null}
+
+            {!mayResolve && role ? (
+                <p className="text-sm text-muted mb-0" role="status">
+                    Su rol tiene acceso de solo lectura; no puede resolver incidencias desde el panel.
+                </p>
+            ) : null}
+
             <div className="admin-workspace__stack">
                 <IncidentHubStats
                     summary={data?.summary ?? null}
@@ -81,7 +144,14 @@ export function IncidentHubWorkspace({ apiBaseUrl }: IncidentHubWorkspaceProps) 
                     onReset={() => setFilters(EMPTY_INCIDENT_HUB_FILTERS)}
                 />
 
-                <IncidentHubRecentTable rows={filtered} loading={loading} wallet={wallet ?? ""} />
+                <IncidentHubRecentTable
+                    rows={filtered}
+                    loading={loading}
+                    wallet={wallet ?? ""}
+                    canResolve={mayResolve}
+                    resolvingId={resolvingId}
+                    onResolve={(id) => void handleResolve(id)}
+                />
             </div>
         </div>
     );

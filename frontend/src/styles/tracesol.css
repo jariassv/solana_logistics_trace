@@ -2290,6 +2290,20 @@ table.data-table {
   overflow: hidden;
 }
 
+.incident-hub-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  min-width: 9.5rem;
+}
+
+.incident-hub-table th:last-child,
+.incident-hub-table td:last-child {
+  text-align: right;
+}
+
 .shipment-incidents__subtitle {
   font-weight: 600;
   color: var(--color-text);
