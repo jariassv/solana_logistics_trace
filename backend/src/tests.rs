@@ -382,6 +382,13 @@ async fn actors_me_returns_400_without_wallet() {
 }
 
 #[tokio::test]
+async fn actors_recipients_returns_500_when_database_unreachable() {
+    let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
+    let response = client.get("/api/v1/actors/recipients").dispatch().await;
+    assert_eq!(response.status(), Status::InternalServerError);
+}
+
+#[tokio::test]
 async fn public_shipment_returns_500_when_database_unreachable() {
     let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
     let response = client
