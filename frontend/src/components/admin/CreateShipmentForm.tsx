@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Connection, PublicKey } from "@solana/web3.js";
 import { PublicKey as PK } from "@solana/web3.js";
 
 import { GeoPointField, type LocationInputMode } from "@/components/admin/GeoPointField";
+import { getRecipientActors, type RecipientOption } from "@/lib/api/actors";
+import { apiBaseHasV1Prefix, normalizeApiBaseUrl } from "@/lib/api/backendConnectivity";
 import { postShipmentsSync } from "@/lib/api/sync";
 import {
     geoPointCoordsValidationError,
@@ -43,7 +45,9 @@ export function CreateShipmentForm({
 }: CreateShipmentFormProps) {
     const [recipient, setRecipient] = useState("");
     const [recipientIssue, setRecipientIssue] = useState<string | null>(null);
-    const recipientRef = useRef<HTMLInputElement>(null);
+    const [recipientOptions, setRecipientOptions] = useState<RecipientOption[]>([]);
+    const [recipientsLoading, setRecipientsLoading] = useState(false);
+    const [recipientsLoadError, setRecipientsLoadError] = useState<string | null>(null);
     const [product, setProduct] = useState("");
     const [origin, setOrigin] = useState("");
     const [destination, setDestination] = useState("");
@@ -53,6 +57,51 @@ export function CreateShipmentForm({
     const [banner, setBanner] = useState<{ kind: "ok" | "err" | "info"; text: string } | null>(
         null,
     );
+
+    const apiBaseTrimmed = normalizeApiBaseUrl(apiBaseUrl ?? "");
+    const apiBaseWellFormed =
+        apiBaseTrimmed !== "" && apiBaseHasV1Prefix(apiBaseTrimmed);
+
+    useEffect(() => {
+        let cancel = false;
+        if (!apiBaseWellFormed) {
+            queueMicrotask(() => {
+                if (!cancel) {
+                    setRecipientOptions([]);
+                    setRecipientsLoading(false);
+                    setRecipientsLoadError(null);
+                }
+            });
+            return () => {
+                cancel = true;
+            };
+        }
+        queueMicrotask(() => {
+            if (!cancel) {
+                setRecipientsLoading(true);
+                setRecipientsLoadError(null);
+            }
+        });
+        void getRecipientActors(apiBaseTrimmed).then((res) => {
+            if (cancel) {
+                return;
+            }
+            if (res.ok) {
+                setRecipientOptions(res.data);
+                setRecipientsLoadError(null);
+                if (res.data.length === 1) {
+                    setRecipient(res.data[0]!.wallet);
+                }
+            } else {
+                setRecipientOptions([]);
+                setRecipientsLoadError("No se pudo cargar la lista de destinatarios.");
+            }
+            setRecipientsLoading(false);
+        });
+        return () => {
+            cancel = true;
+        };
+    }, [apiBaseTrimmed, apiBaseWellFormed]);
 
     useEffect(() => {
         let cancel = false;
@@ -86,7 +135,6 @@ export function CreateShipmentForm({
         const recErr = recipientFieldValidationError(trimmedRec);
         if (recErr) {
             setRecipientIssue(recErr);
-            recipientRef.current?.focus();
             return;
         }
         if (originErr || destErr) {
@@ -180,10 +228,12 @@ export function CreateShipmentForm({
     const disabled =
         busy ||
         !product.trim() ||
+        !recipient.trim() ||
         Boolean(originErr) ||
         Boolean(destErr) ||
         recipientFieldValidationError(recipient.trim()) !== null ||
-        senderActorReady === false;
+        senderActorReady === false ||
+        (recipientOptions.length === 0 && !recipientsLoading && apiBaseWellFormed);
 
     return (
         <form
@@ -206,25 +256,53 @@ export function CreateShipmentForm({
             ) : null}
 
             <div className="form-group">
-                <label htmlFor="admin-ship-rec">Destinatario (wallet)</label>
-                <input
-                    ref={recipientRef}
+                <label htmlFor="admin-ship-rec">Destinatario</label>
+                <select
                     id="admin-ship-rec"
-                    className={`input mono${recipientIssue ? " is-invalid" : ""}`}
+                    className={`select${recipientIssue ? " is-invalid" : ""}`}
                     value={recipient}
-                    disabled={busy}
+                    disabled={busy || recipientsLoading || recipientOptions.length === 0}
                     onChange={(e) => {
                         setRecipient(e.target.value);
                         setRecipientIssue(null);
                     }}
-                    onBlur={() => {
-                        const t = recipient.trim();
-                        setRecipientIssue(t ? recipientFieldValidationError(t) : null);
-                    }}
-                    placeholder="Clave pública del receptor"
-                />
+                >
+                    <option value="">
+                        {recipientsLoading
+                            ? "Cargando destinatarios…"
+                            : recipientOptions.length === 0
+                              ? "Sin destinatarios registrados"
+                              : "Seleccione un destinatario"}
+                    </option>
+                    {recipientOptions.map((o) => (
+                        <option key={o.wallet} value={o.wallet}>
+                            {o.displayLabel}
+                        </option>
+                    ))}
+                </select>
+                <p className="text-xs text-muted mb-0 mt-1">
+                    Solo actores con rol Recipient en el sistema. La wallet se muestra abreviada;
+                    al registrar el envío se usa la clave completa on-chain.
+                </p>
+                {recipientsLoadError ? (
+                    <p className="text-sm admin-form__err mb-0 mt-1" role="alert">
+                        {recipientsLoadError}
+                    </p>
+                ) : null}
+                {!recipientsLoading &&
+                recipientOptions.length === 0 &&
+                !recipientsLoadError &&
+                apiBaseWellFormed ? (
+                    <p className="text-sm text-muted mb-0 mt-1" role="status">
+                        Registre destinatarios en{" "}
+                        <a className="link" href="/registro">
+                            /registro
+                        </a>{" "}
+                        con rol Recipient y sincronice.
+                    </p>
+                ) : null}
                 {recipientIssue ? (
-                    <p className="text-sm admin-form__err" role="alert">
+                    <p className="text-sm admin-form__err mb-0 mt-1" role="alert">
                         {recipientIssue}
                     </p>
                 ) : null}
