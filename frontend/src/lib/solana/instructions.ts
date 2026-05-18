@@ -7,6 +7,9 @@ import {
     encodeInitializeData,
     encodeRecordCheckpointData,
     encodeRegisterActorData,
+    encodeReportCriticalIncidentData,
+    type CriticalIncidentTypeCode,
+    type OnChainIncidentSeverityCode,
 } from "./ix";
 import { actorPda, checkpointPda, configPda, shipmentPda } from "./pdas";
 
@@ -33,6 +36,16 @@ export type BuildCreateShipmentParams = {
     origin: string;
     destination: string;
     requiresColdChain: boolean;
+};
+
+export type BuildReportCriticalIncidentParams = {
+    programId: PublicKey;
+    reporter: PublicKey;
+    shipment: PublicKey;
+    incidentType: CriticalIncidentTypeCode;
+    severity: OnChainIncidentSeverityCode;
+    evidenceHash: Uint8Array;
+    description: string;
 };
 
 export type BuildRecordCheckpointParams = {
@@ -143,6 +156,29 @@ export function createRecordCheckpointIx(p: BuildRecordCheckpointParams): Transa
             p.temperature ?? null,
             p.humidity ?? null,
             p.metadata,
+        ),
+    });
+}
+
+export function createReportCriticalIncidentIx(
+    p: BuildReportCriticalIncidentParams,
+): TransactionInstruction {
+    const [programConfig] = configPda(p.programId);
+    const [reporterActor] = actorPda(p.programId, p.reporter);
+    const keys: AccountMeta[] = [
+        { pubkey: p.reporter, isSigner: true, isWritable: true },
+        { pubkey: reporterActor, isSigner: false, isWritable: false },
+        { pubkey: programConfig, isSigner: false, isWritable: true },
+        { pubkey: p.shipment, isSigner: false, isWritable: true },
+    ];
+    return new TransactionInstruction({
+        programId: p.programId,
+        keys,
+        data: encodeReportCriticalIncidentData(
+            p.incidentType,
+            p.severity,
+            p.evidenceHash,
+            p.description,
         ),
     });
 }

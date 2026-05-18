@@ -8,6 +8,7 @@ export const IX_INITIALIZE = Buffer.from("afaf6d1f0d989bed", "hex");
 export const IX_REGISTER_ACTOR = Buffer.from("7119c49c5c4f0f97", "hex");
 export const IX_CREATE_SHIPMENT = Buffer.from("434011721e8ff9f7", "hex");
 export const IX_RECORD_CHECKPOINT = Buffer.from("f79c995c349aa7db", "hex");
+export const IX_REPORT_CRITICAL_INCIDENT = Buffer.from("4b90610ef4568f97", "hex");
 
 /** discriminador cuenta Anchor `ProgramConfig`. */
 export const ACCOUNT_PROGRAM_CONFIG = Buffer.from("c4d25ae790958c3f", "hex");
@@ -118,7 +119,42 @@ export function encodeRecordCheckpointData(
     ]);
 }
 
+/** Índices Borsh de `CriticalIncidentType` (Anchor). */
+export enum CriticalIncidentTypeCode {
+    TempViolation = 0,
+    Damage,
+    Delay,
+    Lost,
+    Unauthorized,
+    Other,
+}
+
+/** Índices Borsh de `OnChainIncidentSeverity`. */
+export enum OnChainIncidentSeverityCode {
+    High = 0,
+    Critical,
+}
+
 /** Solo discriminador para `initialize` (sin args). */
 export function encodeInitializeData(): Buffer {
     return Buffer.from(IX_INITIALIZE);
+}
+
+/** Cuerpo de instrucción `report_critical_incident`. */
+export function encodeReportCriticalIncidentData(
+    incidentType: CriticalIncidentTypeCode,
+    severity: OnChainIncidentSeverityCode,
+    evidenceHash: Uint8Array,
+    description: string,
+): Buffer {
+    if (evidenceHash.length !== 32) {
+        throw new Error("evidenceHash must be 32 bytes");
+    }
+    return Buffer.concat([
+        IX_REPORT_CRITICAL_INCIDENT,
+        Buffer.from([incidentType]),
+        Buffer.from([severity]),
+        Buffer.from(evidenceHash),
+        encodeBorshString(description),
+    ]);
 }
