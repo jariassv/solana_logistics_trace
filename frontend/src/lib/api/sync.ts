@@ -75,3 +75,17 @@ export async function postCheckpointsSync(
     const json = await parseJsonBody(res);
     return { ok: res.ok, status: res.status, json };
 }
+
+export async function postIncidentsSync(
+    apiBaseUrl: string,
+    body: SyncRequestBodySnake,
+): Promise<SyncCallResult> {
+    const url = joinBase(apiBaseUrl, "incidents/sync");
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+    });
+    const json = await parseJsonBody(res);
+    return { ok: res.ok, status: res.status, json };
+}
