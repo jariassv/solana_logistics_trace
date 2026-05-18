@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { AdminModal } from "@/components/admin/AdminModal";
+import { IncidentHubNavLink } from "@/components/incidents/IncidentHubNavLink";
 import { RecordCheckpointForm } from "@/components/admin/RecordCheckpointForm";
 import { ReportCriticalIncidentForm } from "@/components/admin/ReportCriticalIncidentForm";
 import { ShipmentDetailView } from "@/components/shipments/ShipmentDetailView";
@@ -79,6 +80,7 @@ export default function AdminShipmentDetailPage() {
                 <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin">
                     ← Volver al listado
                 </Link>
+                <IncidentHubNavLink />
             </p>
             <header className="admin-page-header admin-page-header--compact">
                 <div className="admin-page-header__intro">

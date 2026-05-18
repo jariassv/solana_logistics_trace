@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { AdminModal } from "@/components/admin/AdminModal";
+import { IncidentHubNavLink } from "@/components/incidents/IncidentHubNavLink";
 import { ReportCriticalIncidentForm } from "@/components/admin/ReportCriticalIncidentForm";
 import { ShipmentDetailView } from "@/components/shipments/ShipmentDetailView";
 import { ShipmentIncidentsSection } from "@/components/shipments/ShipmentIncidentsSection";
@@ -59,10 +60,11 @@ export default function PanelShipmentDetailPage() {
     return (
         <main className="page-main">
             <div className="shell">
-                <p className="text-sm mb-2">
+                <p className="text-sm mb-2 admin-detail-back">
                     <Link prefetch={false} className="btn btn--ghost btn--sm" href="/panel/envios">
                         ← Volver a envíos
                     </Link>
+                    <IncidentHubNavLink />
                 </p>
                 <h1 className="page-title">Detalle de envío</h1>
                 <p className="page-sub mono">{shipmentId}</p>

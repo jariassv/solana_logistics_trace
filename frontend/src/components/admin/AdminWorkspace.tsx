@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { AdminDashboardStats } from "@/components/admin/AdminDashboardStats";
+import { IncidentHubNavLink } from "@/components/incidents/IncidentHubNavLink";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { AdminShipmentSearch } from "@/components/admin/AdminShipmentSearch";
 import { AdminShipmentsPanel } from "@/components/admin/AdminShipmentsPanel";
@@ -107,6 +108,7 @@ export function AdminWorkspace() {
                     </p>
                 </div>
                 <div className="admin-page-header__meta">
+                    <IncidentHubNavLink />
                     {actorLoading ? (
                         <span className="admin-page-header__meta-label">Cargando perfil…</span>
                     ) : (
