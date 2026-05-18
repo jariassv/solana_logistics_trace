@@ -201,6 +201,16 @@ async fn catalogs_products_returns_500_when_database_unreachable() {
 }
 
 #[tokio::test]
+async fn catalogs_locations_returns_500_when_database_unreachable() {
+    let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
+    let response = client
+        .get("/api/v1/catalogs/locations")
+        .dispatch()
+        .await;
+    assert_eq!(response.status(), Status::InternalServerError);
+}
+
+#[tokio::test]
 async fn cors_preflight_includes_allow_origin_for_configured_origin() {
     let client = tracked_client_with_mock_solana(vec!["http://localhost:3000".into()]).await;
     let response = client

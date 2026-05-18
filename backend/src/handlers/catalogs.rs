@@ -5,7 +5,7 @@ use rocket::serde::json::Json;
 use rocket::State;
 use sqlx::PgPool;
 
-use crate::repos::{catalogs, products};
+use crate::repos::{catalogs, locations, products};
 
 #[rocket::get("/catalogs/actor-roles")]
 pub async fn get_actor_roles(
@@ -52,6 +52,16 @@ pub async fn get_products(
     pool: &State<PgPool>,
 ) -> Result<Json<Vec<products::ProductCatalogItem>>, Status> {
     products::list_active_products(pool.inner())
+        .await
+        .map(Json)
+        .map_err(|_| Status::InternalServerError)
+}
+
+#[rocket::get("/catalogs/locations")]
+pub async fn get_locations(
+    pool: &State<PgPool>,
+) -> Result<Json<Vec<locations::LocationCatalogItem>>, Status> {
+    locations::list_active_locations(pool.inner())
         .await
         .map(Json)
         .map_err(|_| Status::InternalServerError)

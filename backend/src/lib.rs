@@ -41,6 +41,7 @@ pub fn build_rocket(
                 handlers::catalogs::get_shipment_statuses,
                 handlers::catalogs::get_incident_types,
                 handlers::catalogs::get_products,
+                handlers::catalogs::get_locations,
                 handlers::sync::post_sync_actor,
                 handlers::sync::post_sync_shipment,
                 handlers::sync::post_sync_checkpoint,

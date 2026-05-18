@@ -3,5 +3,6 @@
 pub mod actors;
 pub mod catalogs;
 pub mod checkpoints;
+pub mod locations;
 pub mod products;
 pub mod shipments;
