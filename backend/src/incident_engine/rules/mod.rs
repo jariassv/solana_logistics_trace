@@ -2,6 +2,7 @@
 
 mod cold_chain;
 mod delay;
+mod humidity;
 mod offline;
 mod route;
 
@@ -11,6 +12,7 @@ use crate::incident_engine::models::{IncidentDetectionResult, ShipmentContext, T
 
 pub use cold_chain::ColdChainRule;
 pub use delay::DelayRule;
+pub use humidity::HumidityRule;
 pub use offline::{evaluate_offline, SensorOfflineRule};
 pub use route::RouteDeviationRule;
 
@@ -31,6 +33,7 @@ pub trait IncidentRule: Send + Sync {
 pub fn all_rules() -> Vec<Box<dyn IncidentRule>> {
     vec![
         Box::new(ColdChainRule),
+        Box::new(HumidityRule),
         Box::new(SensorOfflineRule),
         Box::new(RouteDeviationRule),
         Box::new(DelayRule),

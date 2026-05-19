@@ -11,6 +11,10 @@ pub struct ProductCatalogItem {
     pub label: String,
     pub description: String,
     pub requires_cold_chain: bool,
+    pub temp_celsius_min: Option<f64>,
+    pub temp_celsius_max: Option<f64>,
+    pub humidity_pct_min: Option<f64>,
+    pub humidity_pct_max: Option<f64>,
     pub packaging_type: String,
     pub packaging_label: String,
     pub category: String,
@@ -24,6 +28,10 @@ impl<'r> FromRow<'r, PgRow> for ProductCatalogItem {
             label: row.try_get("label")?,
             description: row.try_get("description")?,
             requires_cold_chain: row.try_get("requires_cold_chain")?,
+            temp_celsius_min: row.try_get("temp_celsius_min")?,
+            temp_celsius_max: row.try_get("temp_celsius_max")?,
+            humidity_pct_min: row.try_get("humidity_pct_min")?,
+            humidity_pct_max: row.try_get("humidity_pct_max")?,
             packaging_type: row.try_get("packaging_type")?,
             packaging_label: row.try_get("packaging_label")?,
             category: row.try_get("category")?,
@@ -34,8 +42,9 @@ impl<'r> FromRow<'r, PgRow> for ProductCatalogItem {
 
 pub async fn list_active_products(pool: &PgPool) -> Result<Vec<ProductCatalogItem>, sqlx::Error> {
     sqlx::query_as::<_, ProductCatalogItem>(
-        r#"SELECT code, label, description, requires_cold_chain, packaging_type,
-                  packaging_label, category, sort_order
+        r#"SELECT code, label, description, requires_cold_chain,
+                  temp_celsius_min, temp_celsius_max, humidity_pct_min, humidity_pct_max,
+                  packaging_type, packaging_label, category, sort_order
            FROM cat_product
            WHERE is_active = true
            ORDER BY sort_order, label"#,

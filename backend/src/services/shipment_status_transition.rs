@@ -16,10 +16,15 @@ pub async fn apply_after_checkpoint_inserted(
     tx: &mut Transaction<'_, Postgres>,
     shipment_id: Uuid,
     checkpoint_type: &str,
+    occurred_at: chrono::DateTime<chrono::Utc>,
 ) -> Result<(), sqlx::Error> {
     let current = checkpoints::select_shipment_status(tx, shipment_id).await?;
     let next = resolve_next_status(&current, checkpoint_type);
     checkpoints::bump_checkpoint_count_update_status(tx, shipment_id, next).await?;
+
+    if checkpoint_type != "SensorData" {
+        checkpoints::touch_last_logistics_checkpoint(tx, shipment_id, occurred_at).await?;
+    }
 
     if matches!(next, Some("Delivered") | Some("Cancelled")) {
         if let Err(e) = monitoring::stop_monitoring_tx(tx, shipment_id).await {

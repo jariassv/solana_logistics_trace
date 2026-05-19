@@ -3,6 +3,7 @@ use chrono::Utc;
 use serde_json::json;
 
 use super::IncidentRule;
+use crate::incident_engine::gating;
 use crate::incident_engine::models::{IncidentDetectionResult, ShipmentContext, TelemetryEvent};
 
 pub struct DelayRule;
@@ -27,7 +28,10 @@ impl IncidentRule for DelayRule {
         &self,
         shipment: &ShipmentContext,
     ) -> Option<IncidentDetectionResult> {
-        let last = shipment.last_checkpoint_at?;
+        if !gating::allows_delay_rule(shipment) {
+            return None;
+        }
+        let last = shipment.last_logistics_checkpoint_at?;
         let elapsed = Utc::now().signed_duration_since(last);
         if elapsed.num_hours() < HOURS_WITHOUT_CHECKPOINT {
             return None;
@@ -36,12 +40,13 @@ impl IncidentRule for DelayRule {
             incident_type: "SHIPMENT_DELAYED".into(),
             severity: "Medium".into(),
             description: format!(
-                "No checkpoint for {} hours (threshold {HOURS_WITHOUT_CHECKPOINT}h)",
+                "No logistics checkpoint for {} hours (threshold {HOURS_WITHOUT_CHECKPOINT}h)",
                 elapsed.num_hours()
             ),
             evidence_json: json!({
-                "last_checkpoint_at": last.to_rfc3339(),
+                "last_logistics_checkpoint_at": last.to_rfc3339(),
                 "hours_elapsed": elapsed.num_hours(),
+                "shipment_status": shipment.status,
                 "shipment_id": shipment.shipment_id.to_string(),
             }),
             rule_name: self.name().into(),

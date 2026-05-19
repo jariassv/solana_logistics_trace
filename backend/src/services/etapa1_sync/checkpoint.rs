@@ -123,9 +123,14 @@ pub async fn sync_checkpoint(
     .await
     .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
 
-    shipment_status_transition::apply_after_checkpoint_inserted(&mut txdb, shipment_uuid, cp_type)
-        .await
-        .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
+    shipment_status_transition::apply_after_checkpoint_inserted(
+        &mut txdb,
+        shipment_uuid,
+        cp_type,
+        occurred_at,
+    )
+    .await
+    .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
 
     txdb
         .commit()

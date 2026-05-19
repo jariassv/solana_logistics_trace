@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use super::IncidentRule;
+use crate::incident_engine::gating;
 use crate::incident_engine::models::{IncidentDetectionResult, ShipmentContext, TelemetryEvent};
 
 pub struct RouteDeviationRule;
@@ -39,7 +40,7 @@ impl IncidentRule for RouteDeviationRule {
         telemetry: &TelemetryEvent,
         shipment: &ShipmentContext,
     ) -> Option<IncidentDetectionResult> {
-        if telemetry.telemetry_type != "gps" {
+        if !gating::allows_gps_rules(shipment) || telemetry.telemetry_type != "gps" {
             return None;
         }
         let (lat, lng) = telemetry.latitude.zip(telemetry.longitude)?;
@@ -59,6 +60,7 @@ impl IncidentRule for RouteDeviationRule {
                 "latitude": lat,
                 "longitude": lng,
                 "deviation_km": dist,
+                "shipment_status": shipment.status,
                 "shipment_id": shipment.shipment_id.to_string(),
             }),
             rule_name: self.name().into(),

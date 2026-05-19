@@ -79,8 +79,7 @@ impl IncidentProcessor {
         .await?;
 
         sqlx::query(
-            r#"UPDATE shipments SET checkpoint_count = checkpoint_count + 1,
-               last_checkpoint_at = now() WHERE id = $1"#,
+            r#"UPDATE shipments SET checkpoint_count = checkpoint_count + 1 WHERE id = $1"#,
         )
         .bind(shipment_id)
         .execute(pool)

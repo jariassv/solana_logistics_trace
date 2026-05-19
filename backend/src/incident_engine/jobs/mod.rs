@@ -52,6 +52,23 @@ pub fn spawn_incident_engine(pool: PgPool, enabled: bool) {
     {
         let pool = Arc::clone(&pool);
         tokio::spawn(async move {
+            let mut tick = interval(Duration::from_secs(45));
+            loop {
+                tick.tick().await;
+                if let Ok(ids) = monitoring::list_active_shipment_ids(pool.as_ref()).await {
+                    for shipment_id in ids {
+                        let _ =
+                            simulators::simulate_humidity_for_shipment(pool.as_ref(), shipment_id)
+                                .await;
+                    }
+                }
+            }
+        });
+    }
+
+    {
+        let pool = Arc::clone(&pool);
+        tokio::spawn(async move {
             let mut tick = interval(Duration::from_secs(300));
             loop {
                 tick.tick().await;

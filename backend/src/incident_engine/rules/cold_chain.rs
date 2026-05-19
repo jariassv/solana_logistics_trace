@@ -2,11 +2,10 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use super::IncidentRule;
+use crate::incident_engine::gating;
 use crate::incident_engine::models::{IncidentDetectionResult, ShipmentContext, TelemetryEvent};
 
 pub struct ColdChainRule;
-
-const MAX_TEMP_C: f64 = 8.0;
 
 #[async_trait]
 impl IncidentRule for ColdChainRule {
@@ -19,20 +18,34 @@ impl IncidentRule for ColdChainRule {
         telemetry: &TelemetryEvent,
         shipment: &ShipmentContext,
     ) -> Option<IncidentDetectionResult> {
-        if !shipment.requires_cold_chain || telemetry.telemetry_type != "temperature" {
+        if !gating::allows_temperature_rules(shipment) || telemetry.telemetry_type != "temperature" {
+            return None;
+        }
+        if !shipment.thresholds.has_temperature_bounds() && !shipment.requires_cold_chain {
             return None;
         }
         let temp = telemetry.value_numeric?;
-        if temp <= MAX_TEMP_C {
+        if !shipment.thresholds.temperature_out_of_range(temp) {
             return None;
         }
+        let max = shipment.thresholds.temp_celsius_max;
+        let min = shipment.thresholds.temp_celsius_min;
+        let description = match (min, max) {
+            (Some(lo), Some(hi)) => format!("Temperature {temp}°C outside range {lo}–{hi}°C"),
+            (_, Some(hi)) => format!("Temperature {temp}°C exceeds max {hi}°C"),
+            (Some(lo), _) => format!("Temperature {temp}°C below min {lo}°C"),
+            _ => format!("Temperature {temp}°C out of allowed range"),
+        };
         Some(IncidentDetectionResult {
             incident_type: "COLD_CHAIN_BROKEN".into(),
             severity: "High".into(),
-            description: format!("Temperature {temp}°C exceeds limit {MAX_TEMP_C}°C"),
+            description,
             evidence_json: json!({
                 "temperature": temp,
-                "threshold": MAX_TEMP_C,
+                "temp_celsius_min": min,
+                "temp_celsius_max": max,
+                "product": shipment.product_code,
+                "shipment_status": shipment.status,
                 "shipment_id": shipment.shipment_id.to_string(),
             }),
             rule_name: self.name().into(),

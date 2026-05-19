@@ -191,3 +191,19 @@ pub async fn bump_checkpoint_count_update_status(
     }
     Ok(())
 }
+
+/// Actualiza `last_checkpoint_at` tras un checkpoint logístico on-chain.
+pub async fn touch_last_logistics_checkpoint(
+    tx: &mut Transaction<'_, Postgres>,
+    shipment_id: Uuid,
+    occurred_at: chrono::DateTime<chrono::Utc>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"UPDATE shipments SET last_checkpoint_at = $2 WHERE id = $1"#,
+    )
+    .bind(shipment_id)
+    .bind(occurred_at)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}

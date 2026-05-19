@@ -5,6 +5,8 @@ use serde_json::Value;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::incident_engine::models::{ProductThresholds, ShipmentContext};
+
 pub async fn insert_auto(
     pool: &PgPool,
     shipment_id: Uuid,
@@ -63,10 +65,34 @@ pub async fn bump_shipment_incident_count(
 pub async fn load_shipment_context(
     pool: &PgPool,
     shipment_id: Uuid,
-) -> Result<Option<crate::incident_engine::models::ShipmentContext>, sqlx::Error> {
+) -> Result<Option<ShipmentContext>, sqlx::Error> {
     let row = sqlx::query(
-        r#"SELECT requires_cold_chain, origin, destination, last_checkpoint_at
-           FROM shipments WHERE id = $1"#,
+        r#"SELECT
+               s.status,
+               s.product,
+               s.requires_cold_chain,
+               s.origin,
+               s.destination,
+               COALESCE(p.requires_cold_chain, s.requires_cold_chain) AS product_requires_cold,
+               p.temp_celsius_min,
+               p.temp_celsius_max,
+               p.humidity_pct_min,
+               p.humidity_pct_max,
+               EXISTS (
+                   SELECT 1 FROM checkpoints c
+                   WHERE c.shipment_id = s.id AND c.checkpoint_type = 'Pickup'
+               ) AS has_pickup,
+               (
+                   SELECT MAX(c.occurred_at)
+                   FROM checkpoints c
+                   WHERE c.shipment_id = s.id
+                     AND c.checkpoint_type <> 'SensorData'
+                     AND c.actor_wallet NOT LIKE 'system@%'
+                     AND c.tx_hash NOT LIKE 'system:%'
+               ) AS last_logistics_checkpoint_at
+           FROM shipments s
+           LEFT JOIN cat_product p ON p.code = s.product AND p.is_active = true
+           WHERE s.id = $1"#,
     )
     .bind(shipment_id)
     .fetch_optional(pool)
@@ -77,12 +103,23 @@ pub async fn load_shipment_context(
     };
 
     use sqlx::Row;
-    Ok(Some(crate::incident_engine::models::ShipmentContext {
+    let product_requires_cold: bool = r.try_get("product_requires_cold")?;
+    let shipment_requires_cold: bool = r.try_get("requires_cold_chain")?;
+    Ok(Some(ShipmentContext {
         shipment_id,
-        requires_cold_chain: r.try_get("requires_cold_chain")?,
+        status: r.try_get("status")?,
+        product_code: r.try_get("product")?,
+        requires_cold_chain: product_requires_cold || shipment_requires_cold,
         origin: r.try_get("origin")?,
         destination: r.try_get("destination")?,
-        last_checkpoint_at: r.try_get("last_checkpoint_at")?,
+        has_pickup: r.try_get("has_pickup")?,
+        last_logistics_checkpoint_at: r.try_get("last_logistics_checkpoint_at")?,
+        thresholds: ProductThresholds {
+            temp_celsius_min: r.try_get("temp_celsius_min")?,
+            temp_celsius_max: r.try_get("temp_celsius_max")?,
+            humidity_pct_min: r.try_get("humidity_pct_min")?,
+            humidity_pct_max: r.try_get("humidity_pct_max")?,
+        },
     }))
 }
 
