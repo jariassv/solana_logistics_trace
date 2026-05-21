@@ -35,7 +35,7 @@ export function ShipmentTimelineTrack({ checkpoints }: ShipmentTimelineTrackProp
                         </span>
                         <div className="shipment-timeline__body">
                             <div className="shipment-timeline__row">
-                                <span className="shipment-timeline__type">
+                                <span className={`shipment-timeline__type shipment-timeline__type--${kind}`}>
                                     {checkpointTypeLabel(c.type)}
                                 </span>
                                 <time className="shipment-timeline__time" dateTime={c.occurredAt}>

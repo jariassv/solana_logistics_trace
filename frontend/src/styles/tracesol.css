@@ -2566,6 +2566,15 @@ table.data-table {
 .shipment-timeline__type {
   font-weight: 600;
   font-size: 0.88rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  background: var(--color-accent-bg);
+  color: var(--color-primary-dark);
+}
+
+.shipment-timeline__type--sensor {
+  background: var(--color-bg-page);
+  color: var(--color-text-muted);
 }
 
 .shipment-timeline__time {
@@ -2686,4 +2695,511 @@ table.data-table {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+/* —— Detalle de envío (hero + layout pro) —— */
+.shipment-detail-pro {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.shipment-hero__nav {
+  margin-bottom: 0.75rem;
+}
+
+.shipment-hero__surface {
+  background: linear-gradient(
+    145deg,
+    var(--color-bg-card) 0%,
+    var(--color-accent-bg) 55%,
+    var(--color-bg-card) 100%
+  );
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: clamp(1.15rem, 2.5vw, 1.65rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.shipment-hero__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.shipment-hero__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-width: min(100%, 20rem);
+}
+
+.shipment-hero__glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.shipment-hero__glyph .trace-icon {
+  color: inherit;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.shipment-hero__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.shipment-hero__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.5vw, 1.55rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.shipment-hero__code {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.shipment-hero__sep {
+  opacity: 0.5;
+}
+
+.shipment-hero__status-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+}
+
+.shipment-hero__status {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.shipment-hero__cold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--color-primary-dark);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--color-accent-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.shipment-hero__route {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent-soft);
+}
+
+.shipment-hero__route-node {
+  min-width: 0;
+}
+
+.shipment-hero__route-node--end {
+  text-align: right;
+}
+
+.shipment-hero__route-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.shipment-hero__route-value {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.shipment-hero__route-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.shipment-hero__route-line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary-light),
+    var(--color-primary)
+  );
+  border-radius: 1px;
+}
+
+.shipment-hero__route-dot {
+  position: absolute;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.shipment-hero__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+
+@media (min-width: 720px) {
+  .shipment-hero__metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.shipment-hero__metric {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.shipment-hero__metric dt {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.shipment-hero__metric dd {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.shipment-hero__metric-sub {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-top: 0.1rem;
+}
+
+.shipment-hero__metric--alert {
+  border-color: color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 6%, var(--color-bg-card));
+}
+
+.shipment-hero__metric--alert dd {
+  color: var(--color-warning);
+}
+
+.shipment-hero__metric-pending {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.shipment-hero__actors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.shipment-hero__actor {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+}
+
+.shipment-hero__actor-icon {
+  color: var(--color-primary);
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.shipment-hero__actor-role {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.shipment-hero__actor-name {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+.shipment-hero__actor-wallet {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-light);
+  margin-top: 0.12rem;
+}
+
+.shipment-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.shipment-detail-pro__body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 980px) {
+  .shipment-detail-pro__body {
+    grid-template-columns: minmax(0, 1.4fr) minmax(17rem, 1fr);
+  }
+}
+
+.shipment-detail-pro__main {
+  min-width: 0;
+}
+
+.shipment-detail-pro__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shipment-detail-pro__tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background var(--transition), color var(--transition);
+}
+
+.shipment-detail-pro__tab:hover {
+  color: var(--color-text);
+  background: var(--color-accent-bg);
+}
+
+.shipment-detail-pro__tab.is-active {
+  color: var(--color-primary-dark);
+  background: var(--color-accent-bg);
+  font-weight: 600;
+}
+
+.shipment-detail-pro__tab-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  background: var(--color-bg-page);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.shipment-detail-pro__tab.is-active .shipment-detail-pro__tab-count {
+  color: var(--color-primary);
+  background: #fff;
+}
+
+.shipment-detail-pro__tab-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-warning);
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  min-width: 1.25rem;
+  text-align: center;
+}
+
+.shipment-detail-pro__tabs-spacer {
+  flex: 1;
+  min-width: 0.5rem;
+}
+
+.shipment-detail-pro__panel {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.15rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.shipment-detail-pro__empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-bg-page);
+  border-radius: var(--radius-sm);
+}
+
+.shipment-detail-pro__incidents-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+
+.shipment-detail-pro__table-toggle {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.shipment-detail-pro__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.shipment-detail-pro__aside-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.shipment-detail-pro__aside-card--map {
+  padding-bottom: 0.85rem;
+}
+
+.shipment-detail-pro__aside-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.shipment-detail-pro__aside-desc {
+  margin: -0.35rem 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  line-height: 1.4;
+}
+
+.shipment-detail-pro__map {
+  min-height: 11rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.shipment-detail-pro__map-skeleton {
+  min-height: 11rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shipment-monitor {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shipment-monitor__chip {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+}
+
+.shipment-monitor__chip--temperature {
+  border-color: color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent-bg) 50%, var(--color-bg-page));
+}
+
+.shipment-monitor__chip-icon {
+  display: flex;
+  color: var(--color-primary);
+}
+
+.shipment-monitor__chip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.shipment-monitor__chip-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.shipment-monitor__chip-value {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.shipment-monitor__chip-time {
+  font-size: 0.72rem;
+  color: var(--color-text-light);
+}
+
+.shipment-monitor__hint {
+  line-height: 1.45;
 }

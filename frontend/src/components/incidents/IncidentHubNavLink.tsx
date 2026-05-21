@@ -6,7 +6,7 @@ export type IncidentHubNavLinkProps = {
 
 /** Enlace al centro de incidencias (`/panel/incidentes`). */
 export function IncidentHubNavLink({
-    className = "btn btn--ghost btn--sm",
+    className = "btn btn--ghost btn--sm shipment-detail-pro__hub-link",
 }: IncidentHubNavLinkProps) {
     return (
         <Link prefetch={false} className={className} href="/panel/incidentes">
