@@ -10,7 +10,10 @@ use uuid::Uuid;
 use crate::dto::shipment_api::{
     checkpoint_item_from_row, shipment_detail_json_from_row, CheckpointItemJson, ShipmentDetailJson,
 };
+use crate::incident_engine::repositories::incidents;
+use crate::repos::actors;
 use crate::repos::checkpoints;
+use crate::repos::products;
 use crate::repos::shipments;
 
 #[rocket::get("/public/shipments/<shipment_id>")]
@@ -40,10 +43,50 @@ pub async fn get_public_shipment(
                 Json(json!({"error": "database error"})),
             )
         })?;
-    let checkpoints_json: Vec<CheckpointItemJson> =
-        cp_rows.into_iter().map(checkpoint_item_from_row).collect();
+    let mut wallets = vec![
+        shipment_row.sender_wallet.clone(),
+        shipment_row.recipient_wallet.clone(),
+    ];
+    for r in &cp_rows {
+        if !wallets.iter().any(|w| w == &r.actor_wallet) {
+            wallets.push(r.actor_wallet.clone());
+        }
+    }
+    let actor_map = actors::select_summaries_for_wallets(pool.inner(), &wallets)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+    let product_label = products::select_product_label(pool.inner(), &shipment_row.product)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+    let open_incident_count: i32 = incidents::count_open_for_shipment(pool.inner(), shipment_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?
+        .try_into()
+        .unwrap_or(0);
+    let checkpoints_json: Vec<CheckpointItemJson> = cp_rows
+        .into_iter()
+        .map(|r| checkpoint_item_from_row(r, &actor_map))
+        .collect();
     Ok(Json(shipment_detail_json_from_row(
         shipment_row,
         checkpoints_json,
+        product_label,
+        open_incident_count,
+        &actor_map,
     )))
 }

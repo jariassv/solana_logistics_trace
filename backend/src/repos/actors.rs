@@ -125,6 +125,26 @@ pub async fn select_actor_optional(
     .await
 }
 
+/// Nombres y roles registrados para un conjunto de wallets (detalle de envío / checkpoints).
+pub async fn select_summaries_for_wallets(
+    pool: &PgPool,
+    wallets: &[String],
+) -> Result<std::collections::HashMap<String, (String, String)>, sqlx::Error> {
+    if wallets.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let rows: Vec<(String, String, String)> = sqlx::query_as(
+        r#"SELECT wallet, name, role FROM actors WHERE wallet = ANY($1)"#,
+    )
+    .bind(wallets)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(wallet, name, role)| (wallet, (name, role)))
+        .collect())
+}
+
 /// Actores con rol Recipient activos, para selector de destinatario al crear envíos.
 pub async fn list_active_recipients(
     pool: &PgPool,

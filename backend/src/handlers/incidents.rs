@@ -57,6 +57,7 @@ pub struct IncidentApiItem {
     pub resolved_at: Option<chrono::DateTime<chrono::Utc>>,
     pub rule_name: Option<String>,
     pub tx_hash: Option<String>,
+    pub evidence_json: Option<Value>,
 }
 
 fn row_to_api(r: IncidentRow) -> IncidentApiItem {
@@ -72,6 +73,7 @@ fn row_to_api(r: IncidentRow) -> IncidentApiItem {
         resolved_at: r.resolved_at,
         rule_name: r.rule_name,
         tx_hash: r.tx_hash,
+        evidence_json: r.evidence_json.map(|j| j.0),
     }
 }
 

@@ -40,6 +40,18 @@ impl<'r> FromRow<'r, PgRow> for ProductCatalogItem {
     }
 }
 
+pub async fn select_product_label(
+    pool: &PgPool,
+    code: &str,
+) -> Result<Option<String>, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"SELECT label FROM cat_product WHERE code = $1 AND is_active = true"#,
+    )
+    .bind(code)
+    .fetch_optional(pool)
+    .await
+}
+
 pub async fn list_active_products(pool: &PgPool) -> Result<Vec<ProductCatalogItem>, sqlx::Error> {
     sqlx::query_as::<_, ProductCatalogItem>(
         r#"SELECT code, label, description, requires_cold_chain,

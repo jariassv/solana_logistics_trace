@@ -1,5 +1,7 @@
 //! Public GET JSON shapes — camelCase, on-chain ids as decimal strings (PLAN §6.7, §19.2–§19.3).
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use rocket::serde::Serialize;
 use serde_json::{json, Value};
@@ -7,6 +9,7 @@ use uuid::Uuid;
 
 use crate::dto::coordinates::resolve_checkpoint_coordinates;
 use crate::dto::metadata::checkpoint_metadata_for_api;
+use crate::dto::wallet_display::mask_wallet;
 use crate::repos::checkpoints::CheckpointListRow;
 use crate::repos::shipments::{ShipmentDetailRow, ShipmentListRow};
 
@@ -23,6 +26,15 @@ pub struct ShipmentListItemJson {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WalletParticipantJson {
+    pub wallet: String,
+    pub wallet_masked: String,
+    pub display_name: String,
+    pub role: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CheckpointItemJson {
     pub checkpoint_id: String,
     pub on_chain_checkpoint_id: String,
@@ -31,6 +43,9 @@ pub struct CheckpointItemJson {
     pub occurred_at: DateTime<Utc>,
     pub location: Option<String>,
     pub actor: String,
+    pub actor_wallet_masked: String,
+    pub actor_display_name: String,
+    pub actor_role: Option<String>,
     pub temperature_centi: Option<i16>,
     pub humidity: Option<i16>,
     pub latitude: Option<f64>,
@@ -46,16 +61,20 @@ pub struct ShipmentDetailJson {
     pub on_chain_shipment_id: String,
     pub display_label: Option<String>,
     pub product: String,
+    pub product_label: Option<String>,
     pub origin: String,
     pub destination: String,
     pub sender: String,
     pub recipient: String,
+    pub sender_participant: WalletParticipantJson,
+    pub recipient_participant: WalletParticipantJson,
     pub status: String,
     pub requires_cold_chain: bool,
     pub created_at: DateTime<Utc>,
     pub delivered_at: Option<DateTime<Utc>>,
     pub checkpoint_count: i32,
     pub incident_count: i32,
+    pub open_incident_count: i32,
     pub checkpoints: Vec<CheckpointItemJson>,
     pub incidents: Vec<Value>,
 }
@@ -72,8 +91,24 @@ pub fn shipment_list_item_from_row(row: ShipmentListRow) -> ShipmentListItemJson
     }
 }
 
+fn actor_display_for_wallet(
+    wallet: &str,
+    actors: &HashMap<String, (String, String)>,
+) -> (String, Option<String>) {
+    if wallet.starts_with("system@") {
+        return ("Motor de incidencias".into(), None);
+    }
+    if let Some((name, role)) = actors.get(wallet) {
+        return (name.clone(), Some(role.clone()));
+    }
+    (mask_wallet(wallet), None)
+}
+
 #[must_use]
-pub fn checkpoint_item_from_row(row: CheckpointListRow) -> CheckpointItemJson {
+pub fn checkpoint_item_from_row(
+    row: CheckpointListRow,
+    actors: &HashMap<String, (String, String)>,
+) -> CheckpointItemJson {
     let raw_meta = row
         .metadata_json
         .as_ref()
@@ -82,13 +117,17 @@ pub fn checkpoint_item_from_row(row: CheckpointListRow) -> CheckpointItemJson {
     let (latitude, longitude) =
         resolve_checkpoint_coordinates(row.latitude, row.longitude, &raw_meta);
     let metadata = checkpoint_metadata_for_api(&raw_meta);
+    let (actor_display_name, actor_role) = actor_display_for_wallet(&row.actor_wallet, actors);
     CheckpointItemJson {
         checkpoint_id: row.id.to_string(),
         on_chain_checkpoint_id: row.on_chain_checkpoint_id.to_string(),
         checkpoint_type: row.checkpoint_type,
         occurred_at: row.occurred_at,
         location: row.location,
+        actor_wallet_masked: mask_wallet(&row.actor_wallet),
         actor: row.actor_wallet,
+        actor_display_name,
+        actor_role,
         temperature_centi: row.temperature_centi,
         humidity: row.humidity,
         latitude,
@@ -99,25 +138,46 @@ pub fn checkpoint_item_from_row(row: CheckpointListRow) -> CheckpointItemJson {
 }
 
 #[must_use]
+pub fn wallet_participant_from_wallet(
+    wallet: &str,
+    actors: &HashMap<String, (String, String)>,
+) -> WalletParticipantJson {
+    let (display_name, role) = actor_display_for_wallet(wallet, actors);
+    WalletParticipantJson {
+        wallet: wallet.to_string(),
+        wallet_masked: mask_wallet(wallet),
+        display_name,
+        role,
+    }
+}
+
+#[must_use]
 pub fn shipment_detail_json_from_row(
     row: ShipmentDetailRow,
     checkpoints: Vec<CheckpointItemJson>,
+    product_label: Option<String>,
+    open_incident_count: i32,
+    actors: &HashMap<String, (String, String)>,
 ) -> ShipmentDetailJson {
     ShipmentDetailJson {
         shipment_id: row.id,
         on_chain_shipment_id: row.on_chain_shipment_id.to_string(),
         display_label: None,
-        product: row.product,
+        product: row.product.clone(),
+        product_label,
         origin: row.origin,
         destination: row.destination,
-        sender: row.sender_wallet,
-        recipient: row.recipient_wallet,
+        sender: row.sender_wallet.clone(),
+        recipient: row.recipient_wallet.clone(),
+        sender_participant: wallet_participant_from_wallet(&row.sender_wallet, actors),
+        recipient_participant: wallet_participant_from_wallet(&row.recipient_wallet, actors),
         status: row.status,
         requires_cold_chain: row.requires_cold_chain,
         created_at: row.created_at,
         delivered_at: row.delivered_at,
         checkpoint_count: row.checkpoint_count,
         incident_count: row.incident_count,
+        open_incident_count,
         checkpoints,
         incidents: vec![],
     }

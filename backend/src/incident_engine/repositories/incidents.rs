@@ -373,6 +373,19 @@ pub async fn resolve_open(
     Ok(result.rows_affected() > 0)
 }
 
+pub async fn count_open_for_shipment(
+    pool: &PgPool,
+    shipment_id: Uuid,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"SELECT COUNT(*)::bigint FROM incidents
+           WHERE shipment_id = $1 AND status = 'Open'"#,
+    )
+    .bind(shipment_id)
+    .fetch_one(pool)
+    .await
+}
+
 pub async fn list_by_shipment(
     pool: &PgPool,
     shipment_id: Uuid,
