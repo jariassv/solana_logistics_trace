@@ -84,7 +84,8 @@ export type ChainStepKey =
     | "initialize"
     | "register_actor"
     | "create_shipment"
-    | "record_checkpoint";
+    | "record_checkpoint"
+    | "report_critical_incident";
 
 /** Textos de ayuda junto a botones (panel administrativo). */
 export const adminHints = {

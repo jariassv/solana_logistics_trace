@@ -109,12 +109,12 @@ function parseCheckpointItem(raw: unknown): CheckpointItem | null {
     const type = asString(o.type);
     const occurredAt = asString(o.occurredAt);
     const actor = asString(o.actor);
-    const actorWalletMasked = asString(o.actorWalletMasked) || actor;
-    const actorDisplayName = asString(o.actorDisplayName) || actorWalletMasked;
     const txHash = asString(o.txHash);
     if (!checkpointId || !onChainCheckpointId || !type || !occurredAt || !actor || !txHash) {
         return null;
     }
+    const actorWalletMasked = asString(o.actorWalletMasked) || actor;
+    const actorDisplayName = asString(o.actorDisplayName) || actorWalletMasked;
     const actorRole =
         o.actorRole === null || o.actorRole === undefined ? null : asString(o.actorRole) || null;
     const metadataRaw = o.metadata;
@@ -187,7 +187,7 @@ export function parseWalletParticipant(raw: unknown, fallbackWallet: string): Wa
     return { wallet, walletMasked, displayName, role };
 }
 
-function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
+export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     const o = asRecord(raw);
     if (!o) {
         return null;
@@ -204,7 +204,6 @@ function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     const requiresColdChain = asBool(o.requiresColdChain);
     const checkpointCount = asNum(o.checkpointCount);
     const incidentCount = asNum(o.incidentCount);
-    const openIncidentCount = asNum(o.openIncidentCount) ?? incidentCount;
     const productLabel =
         o.productLabel === null || o.productLabel === undefined
             ? null
@@ -225,6 +224,7 @@ function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     ) {
         return null;
     }
+    const openIncidentCount = asNum(o.openIncidentCount) ?? incidentCount;
     const senderParticipant = parseWalletParticipant(o.senderParticipant, sender);
     const recipientParticipant = parseWalletParticipant(o.recipientParticipant, recipient);
     const checkpointsRaw = o.checkpoints;
