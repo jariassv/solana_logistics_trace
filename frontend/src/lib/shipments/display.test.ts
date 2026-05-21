@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { roleDisplayName, statusBadgeClass } from "./display";
+import { roleDisplayName, statusBadgeClass, statusLabel } from "./display";
 
 describe("shipments display", () => {
     it("maps status to badge class", () => {
@@ -8,6 +8,10 @@ describe("shipments display", () => {
     });
 
     it("formats missing role", () => {
-        expect(roleDisplayName(null)).toBe("Sin rol en backend");
+        expect(roleDisplayName(null)).toBe("Sin rol");
+    });
+
+    it("translates shipment status", () => {
+        expect(statusLabel("InTransit")).toBe("En tránsito");
     });
 });

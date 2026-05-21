@@ -44,7 +44,7 @@ export default function PanelShipmentDetailPage() {
     }, [reload]);
 
     const backLink = (
-        <p className="shipment-detail-v2__back admin-detail-back">
+        <p className="admin-detail-back mb-0">
             <Link prefetch={false} className="btn btn--ghost btn--sm" href="/panel/envios">
                 ← Envíos
             </Link>
