@@ -25,6 +25,7 @@ const participant = (wallet: string, name: string) => ({
 
 const detailBody = {
     ...listRow,
+    creationTxHash: "5K7x8y9zAbCdEfGhIjKlMnOpQrStUvWxYz1234567890AbCdEfGhIjKlMnOpQr",
     displayLabel: null,
     productLabel: "Caja térmica",
     origin: "A",
@@ -110,6 +111,7 @@ describe("shipments API client", () => {
             expect(res.data.weightKg).toBe(12.5);
             expect(res.data.referenceCode).toBe("PO-99");
             expect(res.data.priority).toBe("urgent");
+            expect(res.data.creationTxHash).toBe(detailBody.creationTxHash);
         }
     });
 

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { ShipmentOperationalDetails } from "@/components/shipments/ShipmentOperationalDetails";
 import { CheckpointTable } from "@/components/shipments/CheckpointTable";
 import { CheckpointTimeline } from "@/components/panel/CheckpointTimeline";
+import { ShipmentCreationTxHash } from "@/components/shipments/ShipmentCreationTxHash";
 import { ShipmentRecorridoAside } from "@/components/shipments/ShipmentRecorridoAside";
 import { statusBadgeClass } from "@/lib/shipments/display";
 import type { ShipmentDetail } from "@/lib/api/shipments";
@@ -44,6 +45,14 @@ function SummaryGrid({
                 <div>
                     <span className="text-muted">On-chain ID</span>
                     <p className="mb-0 mono">{detail.onChainShipmentId}</p>
+                </div>
+                <div className="shipment-detail__tx-field">
+                    <span className="text-muted">Tx blockchain</span>
+                    <ShipmentCreationTxHash
+                        txHash={detail.creationTxHash}
+                        label="Creación"
+                        className="mb-0"
+                    />
                 </div>
                 <div>
                     <span className="text-muted">Producto</span>
@@ -118,6 +127,10 @@ function SummaryProse({ detail }: { detail: ShipmentDetail }) {
                 <p>
                     <strong>Origen → destino:</strong> {detail.origin} → {detail.destination}
                 </p>
+                <p className="mb-0">
+                    <strong>On-chain ID:</strong> {detail.onChainShipmentId}
+                </p>
+                <ShipmentCreationTxHash txHash={detail.creationTxHash} className="mb-0" />
                 <ShipmentOperationalDetails detail={detail} variant="summary" />
                 <p className="mono text-xs break-all">
                     <strong>Remitente:</strong> {detail.sender}

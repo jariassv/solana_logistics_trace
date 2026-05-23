@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { ShipmentCreationTxHash } from "@/components/shipments/ShipmentCreationTxHash";
 import { ShipmentJourneyTimeline } from "@/components/shipments/ShipmentJourneyTimeline";
 import { IconPackage, IconThermometer } from "@/components/ui/TraceIcons";
 import type { ShipmentDetail } from "@/lib/api/shipments";
@@ -66,6 +67,10 @@ export function ShipmentDetailHero({
                             <p className="shipment-hero__onchain mono">
                                 On-chain #{detail.onChainShipmentId}
                             </p>
+                            <ShipmentCreationTxHash
+                                txHash={detail.creationTxHash}
+                                className="shipment-hero__creation-tx"
+                            />
                         </div>
                     </div>
                     <div className="shipment-hero__status-block">

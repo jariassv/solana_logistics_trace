@@ -51,6 +51,7 @@ export type CheckpointItem = {
 export type ShipmentDetail = {
     shipmentId: string;
     onChainShipmentId: string;
+    creationTxHash: string;
     displayLabel: string | null;
     product: string;
     productLabel: string | null;
@@ -201,6 +202,7 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     }
     const shipmentId = asString(o.shipmentId);
     const onChainShipmentId = asString(o.onChainShipmentId);
+    const creationTxHash = asString(o.creationTxHash);
     const product = asString(o.product);
     const origin = asString(o.origin);
     const destination = asString(o.destination);
@@ -218,6 +220,7 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     if (
         !shipmentId ||
         !onChainShipmentId ||
+        !creationTxHash ||
         !product ||
         !origin ||
         !destination ||
@@ -269,6 +272,7 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     return {
         shipmentId,
         onChainShipmentId,
+        creationTxHash,
         displayLabel,
         product,
         productLabel,

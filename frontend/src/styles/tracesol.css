@@ -2877,6 +2877,23 @@ table.data-table {
   line-height: 1.35;
 }
 
+.shipment-hero__creation-tx {
+  margin: 0.35rem 0 0;
+}
+
+.shipment-detail__tx-field .shipment-timeline__tx {
+  margin-top: 0.25rem;
+}
+
+.shipment-creation-tx__link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.shipment-creation-tx__link:hover {
+  text-decoration: underline;
+}
+
 .shipment-hero__onchain {
   margin: 0.3rem 0 0;
   font-size: 0.72rem;
