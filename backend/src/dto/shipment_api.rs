@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::dto::coordinates::resolve_checkpoint_coordinates;
 use crate::dto::metadata::checkpoint_metadata_for_api;
+use crate::dto::shipment_details::ShipmentDetailsJson;
 use crate::dto::wallet_display::mask_wallet;
 use crate::repos::checkpoints::CheckpointListRow;
 use crate::repos::shipments::{ShipmentDetailRow, ShipmentListRow};
@@ -75,6 +76,13 @@ pub struct ShipmentDetailJson {
     pub checkpoint_count: i32,
     pub incident_count: i32,
     pub open_incident_count: i32,
+    pub weight_kg: Option<f64>,
+    pub quantity: Option<i32>,
+    pub quantity_unit: Option<String>,
+    pub estimated_delivery_at: Option<DateTime<Utc>>,
+    pub reference_code: Option<String>,
+    pub priority: String,
+    pub notes: Option<String>,
     pub checkpoints: Vec<CheckpointItemJson>,
     pub incidents: Vec<Value>,
 }
@@ -159,6 +167,7 @@ pub fn shipment_detail_json_from_row(
     open_incident_count: i32,
     actors: &HashMap<String, (String, String)>,
 ) -> ShipmentDetailJson {
+    let details_json: ShipmentDetailsJson = row.details.clone().into();
     ShipmentDetailJson {
         shipment_id: row.id,
         on_chain_shipment_id: row.on_chain_shipment_id.to_string(),
@@ -178,6 +187,13 @@ pub fn shipment_detail_json_from_row(
         checkpoint_count: row.checkpoint_count,
         incident_count: row.incident_count,
         open_incident_count,
+        weight_kg: details_json.weight_kg,
+        quantity: details_json.quantity,
+        quantity_unit: details_json.quantity_unit,
+        estimated_delivery_at: details_json.estimated_delivery_at,
+        reference_code: details_json.reference_code,
+        priority: details_json.priority,
+        notes: details_json.notes,
         checkpoints,
         incidents: vec![],
     }

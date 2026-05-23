@@ -15,6 +15,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::dto::shipment_details::ShipmentSyncDetailsInput;
 use crate::solana::{SolanaRpcClient, SolanaSyncError};
 
 #[derive(Debug, Deserialize)]
@@ -22,6 +23,25 @@ pub struct SyncRequestBody {
     pub tx_hash: String,
     #[serde(default)]
     pub commitment: Option<String>,
+}
+
+/// Cuerpo de `POST /shipments/sync`: transacción on-chain + detalles opcionales off-chain.
+#[derive(Debug, Deserialize)]
+pub struct ShipmentSyncRequestBody {
+    pub tx_hash: String,
+    #[serde(default)]
+    pub commitment: Option<String>,
+    #[serde(default)]
+    pub details: Option<ShipmentSyncDetailsInput>,
+}
+
+impl ShipmentSyncRequestBody {
+    pub fn commitment(&self) -> String {
+        self.commitment
+            .clone()
+            .filter(|c| !c.is_empty())
+            .unwrap_or_else(|| "confirmed".to_string())
+    }
 }
 
 impl SyncRequestBody {

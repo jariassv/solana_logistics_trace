@@ -4,9 +4,10 @@ use chrono::{TimeZone, Utc};
 use sqlx::PgPool;
 
 use super::{
-    first_matching_account, pubkey_bs58, validate_signature_base58, ShipmentSyncResponse,
-    SyncOutcome, SyncRequestBody,
+    first_matching_account, pubkey_bs58, validate_signature_base58, ShipmentSyncRequestBody,
+    ShipmentSyncResponse, SyncOutcome,
 };
+use crate::dto::shipment_details::normalize_shipment_sync_details;
 use crate::incident_engine::MonitoringService;
 use crate::repos::shipments;
 use crate::solana::decode::{decode_shipment_account, shipment_status_code};
@@ -18,10 +19,12 @@ pub async fn sync_shipment(
     pool: &PgPool,
     rpc: &Arc<dyn SolanaRpcClient>,
     program_id: &str,
-    body: &SyncRequestBody,
+    body: &ShipmentSyncRequestBody,
 ) -> Result<SyncOutcome<ShipmentSyncResponse>, SolanaSyncError> {
     validate_signature_base58(&body.tx_hash)?;
     let commitment = body.commitment();
+    let details = normalize_shipment_sync_details(body.details.clone())
+        .map_err(SolanaSyncError::Validation)?;
 
     let tx_json = rpc
         .get_transaction_json(&body.tx_hash, &commitment)
@@ -85,6 +88,7 @@ pub async fn sync_shipment(
         created_at,
         delivered_at,
         &body.tx_hash,
+        details.as_ref(),
     )
     .await
     .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;

@@ -4,6 +4,7 @@ use sqlx::{Error as SqlxError, FromRow, PgPool, Row};
 use uuid::Uuid;
 
 use crate::access::operational_roles_see_all_shipments;
+use crate::dto::shipment_details::{ShipmentDetailsPersist, ShipmentDetailsRow, PRIORITY_NORMAL};
 use crate::repos::actors;
 
 /// Row for `GET /shipments?wallet=` list responses.
@@ -46,7 +47,13 @@ pub struct ShipmentDetailRow {
     pub incident_count: i32,
     pub created_at: DateTime<Utc>,
     pub delivered_at: Option<DateTime<Utc>>,
+    pub details: ShipmentDetailsRow,
 }
+
+const SHIPMENT_DETAIL_SELECT: &str = r#"SELECT id, on_chain_shipment_id, sender_wallet, recipient_wallet, product, origin,
+                  destination, status, requires_cold_chain, checkpoint_count, incident_count,
+                  created_at, delivered_at,
+                  weight_kg, quantity, quantity_unit, estimated_delivery_at, reference_code, priority, notes"#;
 
 impl<'r> FromRow<'r, PgRow> for ShipmentDetailRow {
     fn from_row(row: &'r PgRow) -> Result<Self, SqlxError> {
@@ -64,6 +71,7 @@ impl<'r> FromRow<'r, PgRow> for ShipmentDetailRow {
             incident_count: row.try_get("incident_count")?,
             created_at: row.try_get("created_at")?,
             delivered_at: row.try_get("delivered_at")?,
+            details: ShipmentDetailsRow::from_pg_row(row)?,
         })
     }
 }
@@ -113,11 +121,7 @@ pub async fn select_shipment_detail_by_id(
     shipment_id: Uuid,
 ) -> Result<Option<ShipmentDetailRow>, sqlx::Error> {
     sqlx::query_as::<_, ShipmentDetailRow>(
-        r#"SELECT id, on_chain_shipment_id, sender_wallet, recipient_wallet, product, origin,
-                  destination, status, requires_cold_chain, checkpoint_count, incident_count,
-                  created_at, delivered_at
-           FROM shipments
-           WHERE id = $1"#,
+        &format!("{SHIPMENT_DETAIL_SELECT} FROM shipments WHERE id = $1"),
     )
     .bind(shipment_id)
     .fetch_optional(pool)
@@ -130,11 +134,7 @@ pub async fn select_shipment_detail_for_participant(
     wallet: &str,
 ) -> Result<Option<ShipmentDetailRow>, sqlx::Error> {
     sqlx::query_as::<_, ShipmentDetailRow>(
-        r#"SELECT id, on_chain_shipment_id, sender_wallet, recipient_wallet, product, origin,
-                  destination, status, requires_cold_chain, checkpoint_count, incident_count,
-                  created_at, delivered_at
-           FROM shipments
-           WHERE id = $1 AND (sender_wallet = $2 OR recipient_wallet = $2)"#,
+        &format!("{SHIPMENT_DETAIL_SELECT} FROM shipments WHERE id = $1 AND (sender_wallet = $2 OR recipient_wallet = $2)"),
     )
     .bind(shipment_id)
     .bind(wallet)
@@ -221,12 +221,46 @@ pub async fn insert_shipment_returning_id(
     created_at: DateTime<Utc>,
     delivered_at: Option<DateTime<Utc>>,
     creation_tx_hash: &str,
+    details: Option<&ShipmentDetailsPersist>,
 ) -> Result<Uuid, sqlx::Error> {
+    let (
+        weight_kg,
+        quantity,
+        quantity_unit,
+        estimated_delivery_at,
+        reference_code,
+        priority,
+        notes,
+    ) = details.map_or(
+        (
+            None::<f64>,
+            None::<i32>,
+            None::<String>,
+            None::<DateTime<Utc>>,
+            None::<String>,
+            PRIORITY_NORMAL.to_string(),
+            None::<String>,
+        ),
+        |d| {
+            (
+                d.weight_kg,
+                d.quantity,
+                d.quantity_unit.clone(),
+                d.estimated_delivery_at,
+                d.reference_code.clone(),
+                d.priority.clone(),
+                d.notes.clone(),
+            )
+        },
+    );
+
     let id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO shipments (
                on_chain_shipment_id, sender_wallet, recipient_wallet, product, origin, destination,
-               status, requires_cold_chain, checkpoint_count, incident_count, created_at, delivered_at, creation_tx_hash
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+               status, requires_cold_chain, checkpoint_count, incident_count, created_at, delivered_at,
+               creation_tx_hash, weight_kg, quantity, quantity_unit, estimated_delivery_at,
+               reference_code, priority, notes
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
            RETURNING id"#,
     )
     .bind(on_chain_shipment_id)
@@ -242,6 +276,13 @@ pub async fn insert_shipment_returning_id(
     .bind(created_at)
     .bind(delivered_at)
     .bind(creation_tx_hash)
+    .bind(weight_kg)
+    .bind(quantity)
+    .bind(quantity_unit)
+    .bind(estimated_delivery_at)
+    .bind(reference_code)
+    .bind(priority)
+    .bind(notes)
     .fetch_one(pool)
     .await?;
     Ok(id)
