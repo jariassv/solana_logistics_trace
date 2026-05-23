@@ -59,6 +59,7 @@ pub fn build_rocket(
                 handlers::incidents::list_shipment_incidents,
                 handlers::incidents::resolve_incident,
                 handlers::telemetry::list_shipment_telemetry,
+                handlers::telemetry::sample_shipment_telemetry,
             ],
         )
 }

@@ -10,6 +10,14 @@ use crate::incident_engine::models::TelemetryEvent;
 use crate::incident_engine::repositories::{incidents, monitoring, telemetry};
 use crate::incident_engine::services::rule_engine_service::RuleEngineService;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MeterSampleReport {
+    pub monitoring_active: bool,
+    pub gps_recorded: bool,
+    pub temperature_recorded: bool,
+    pub humidity_recorded: bool,
+}
+
 fn parse_coord_field(raw: &str) -> Option<(f64, f64)> {
     let parts: Vec<&str> = raw.split(',').collect();
     if parts.len() != 2 {
@@ -57,20 +65,24 @@ fn sample_humidity_in_range(min: f64, max: f64, rng: &mut impl Rng) -> f64 {
     }
 }
 
-pub async fn simulate_temperature_for_shipment(
+async fn insert_telemetry_event(
+    pool: &PgPool,
+    event: TelemetryEvent,
+) -> Result<(), sqlx::Error> {
+    telemetry::insert(pool, &event).await?;
+    RuleEngineService::process_telemetry(pool, event).await
+}
+
+async fn try_record_temperature(
     pool: &PgPool,
     shipment_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    if !monitoring::is_active(pool, shipment_id).await? {
-        return Ok(());
-    }
-
+) -> Result<bool, sqlx::Error> {
     let Some(ctx) = incidents::load_shipment_context(pool, shipment_id).await? else {
-        return Ok(());
+        return Ok(false);
     };
 
     if !gating::allows_temperature_rules(&ctx) {
-        return Ok(());
+        return Ok(false);
     }
 
     let (min, max) = match (
@@ -80,7 +92,7 @@ pub async fn simulate_temperature_for_shipment(
         (Some(lo), Some(hi)) => (lo, hi),
         (_, Some(hi)) if ctx.requires_cold_chain => (2.0, hi),
         (Some(lo), _) if ctx.requires_cold_chain => (lo, 8.0),
-        _ => return Ok(()),
+        _ => return Ok(false),
     };
 
     let temp = sample_in_range(min, max, &mut rand::thread_rng());
@@ -95,28 +107,21 @@ pub async fn simulate_temperature_for_shipment(
         recorded_at: Utc::now(),
     };
 
-    telemetry::insert(pool, &event).await?;
-    RuleEngineService::process_telemetry(pool, event).await
+    insert_telemetry_event(pool, event).await?;
+    Ok(true)
 }
 
-pub async fn simulate_humidity_for_shipment(
-    pool: &PgPool,
-    shipment_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    if !monitoring::is_active(pool, shipment_id).await? {
-        return Ok(());
-    }
-
+async fn try_record_humidity(pool: &PgPool, shipment_id: Uuid) -> Result<bool, sqlx::Error> {
     let Some(ctx) = incidents::load_shipment_context(pool, shipment_id).await? else {
-        return Ok(());
+        return Ok(false);
     };
 
     if !gating::allows_humidity_rules(&ctx) {
-        return Ok(());
+        return Ok(false);
     }
 
     let Some(max) = ctx.thresholds.humidity_pct_max else {
-        return Ok(());
+        return Ok(false);
     };
     let min = ctx.thresholds.humidity_pct_min.unwrap_or(0.0);
 
@@ -132,29 +137,22 @@ pub async fn simulate_humidity_for_shipment(
         recorded_at: Utc::now(),
     };
 
-    telemetry::insert(pool, &event).await?;
-    RuleEngineService::process_telemetry(pool, event).await
+    insert_telemetry_event(pool, event).await?;
+    Ok(true)
 }
 
-pub async fn simulate_gps_for_shipment(
-    pool: &PgPool,
-    shipment_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    if !monitoring::is_active(pool, shipment_id).await? {
-        return Ok(());
-    }
-
+async fn try_record_gps(pool: &PgPool, shipment_id: Uuid) -> Result<bool, sqlx::Error> {
     let Some(ctx) = incidents::load_shipment_context(pool, shipment_id).await? else {
-        return Ok(());
+        return Ok(false);
     };
 
     if !gating::allows_gps_rules(&ctx) {
-        return Ok(());
+        return Ok(false);
     }
 
     let Some((lat, lng)) = sample_near_route(&ctx.origin, &ctx.destination, &mut rand::thread_rng())
     else {
-        return Ok(());
+        return Ok(false);
     };
 
     let event = TelemetryEvent {
@@ -167,6 +165,69 @@ pub async fn simulate_gps_for_shipment(
         recorded_at: Utc::now(),
     };
 
-    telemetry::insert(pool, &event).await?;
-    RuleEngineService::process_telemetry(pool, event).await
+    insert_telemetry_event(pool, event).await?;
+    Ok(true)
+}
+
+/// Ejecuta GPS, temperatura y humedad simulados al instante (sin esperar al worker).
+pub async fn sample_meters_on_demand(
+    pool: &PgPool,
+    shipment_id: Uuid,
+) -> Result<MeterSampleReport, sqlx::Error> {
+    let monitoring_active = monitoring::is_active(pool, shipment_id).await?;
+    let gps_recorded = try_record_gps(pool, shipment_id).await?;
+    let temperature_recorded = try_record_temperature(pool, shipment_id).await?;
+    let humidity_recorded = try_record_humidity(pool, shipment_id).await?;
+    Ok(MeterSampleReport {
+        monitoring_active,
+        gps_recorded,
+        temperature_recorded,
+        humidity_recorded,
+    })
+}
+
+pub async fn simulate_temperature_for_shipment(
+    pool: &PgPool,
+    shipment_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    if !monitoring::is_active(pool, shipment_id).await? {
+        return Ok(());
+    }
+    let _ = try_record_temperature(pool, shipment_id).await?;
+    Ok(())
+}
+
+pub async fn simulate_humidity_for_shipment(
+    pool: &PgPool,
+    shipment_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    if !monitoring::is_active(pool, shipment_id).await? {
+        return Ok(());
+    }
+    let _ = try_record_humidity(pool, shipment_id).await?;
+    Ok(())
+}
+
+pub async fn simulate_gps_for_shipment(
+    pool: &PgPool,
+    shipment_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    if !monitoring::is_active(pool, shipment_id).await? {
+        return Ok(());
+    }
+    let _ = try_record_gps(pool, shipment_id).await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sample_near_route;
+
+    #[test]
+    fn sample_near_route_interpolates_origin_destination() {
+        let (lat, lng) = sample_near_route("13.0,-89.0", "14.0,-88.0", &mut rand::thread_rng())
+            .expect("coords");
+        assert!((13.0..=14.0).contains(&lat));
+        assert!((-89.0..=-88.0).contains(&lng));
+    }
 }
