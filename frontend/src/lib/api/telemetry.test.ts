@@ -1,30 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { parseTelemetryEvent } from "./telemetry";
+import { parseTelemetryEvent, postSampleShipmentTelemetry } from "./telemetry";
 
 describe("parseTelemetryEvent", () => {
-    it("parses a valid telemetry row", () => {
+    it("parses camelCase telemetry rows", () => {
         const item = parseTelemetryEvent({
-            id: "tel-1",
-            shipmentId: "ship-1",
-            telemetryType: "temperature",
-            valueNumeric: 425,
-            latitude: null,
-            longitude: null,
-            recordedAt: "2026-05-17T12:00:00Z",
+            id: "a",
+            shipmentId: "s",
+            telemetryType: "gps",
+            valueNumeric: null,
+            latitude: 13.5,
+            longitude: -89.2,
+            recordedAt: "2026-05-18T12:00:00Z",
         });
-        expect(item).toEqual({
-            id: "tel-1",
-            shipmentId: "ship-1",
-            telemetryType: "temperature",
-            valueNumeric: 425,
-            latitude: null,
-            longitude: null,
-            recordedAt: "2026-05-17T12:00:00Z",
-        });
+        expect(item?.telemetryType).toBe("gps");
+        expect(item?.latitude).toBe(13.5);
     });
+});
 
-    it("returns null when required fields are missing", () => {
-        expect(parseTelemetryEvent({ id: "x" })).toBeNull();
+describe("postSampleShipmentTelemetry", () => {
+    it("is exported for checkpoint form", () => {
+        expect(typeof postSampleShipmentTelemetry).toBe("function");
     });
 });

@@ -16,6 +16,20 @@ export type TelemetryGetResult =
     | { ok: true; status: number; data: TelemetryEventItem[] }
     | { ok: false; status: number; body: unknown };
 
+export type MeterSampleResult =
+    | {
+          ok: true;
+          status: number;
+          data: {
+              monitoringActive: boolean;
+              gpsRecorded: boolean;
+              temperatureRecorded: boolean;
+              humidityRecorded: boolean;
+              readings: TelemetryEventItem[];
+          };
+      }
+    | { ok: false; status: number; body: unknown };
+
 function joinBase(apiBaseUrl: string, pathSegment: string): string {
     const base = apiBaseUrl.replace(/\/+$/, "");
     const path = pathSegment.replace(/^\/+/, "");
@@ -91,4 +105,68 @@ export async function getShipmentTelemetry(
         }
     }
     return { ok: true, status: res.status, data };
+}
+
+export type MeterSamplePayload = {
+    monitoringActive: boolean;
+    gpsRecorded: boolean;
+    temperatureRecorded: boolean;
+    humidityRecorded: boolean;
+    readings: TelemetryEventItem[];
+};
+
+function parseMeterSampleBody(body: unknown): MeterSamplePayload | null {
+    const o = asRecord(body);
+    if (!o) {
+        return null;
+    }
+    const readingsRaw = o.readings;
+    const readings: TelemetryEventItem[] = [];
+    if (Array.isArray(readingsRaw)) {
+        for (const el of readingsRaw) {
+            const item = parseTelemetryEvent(el);
+            if (item) {
+                readings.push(item);
+            }
+        }
+    }
+    return {
+        monitoringActive: o.monitoringActive === true,
+        gpsRecorded: o.gpsRecorded === true,
+        temperatureRecorded: o.temperatureRecorded === true,
+        humidityRecorded: o.humidityRecorded === true,
+        readings,
+    };
+}
+
+export async function postSampleShipmentTelemetry(
+    apiBaseUrl: string,
+    shipmentId: string,
+    wallet: string,
+    signal?: AbortSignal,
+): Promise<MeterSampleResult> {
+    const path = `shipments/${encodeURIComponent(shipmentId)}/telemetry/sample`;
+    const url = `${joinBase(apiBaseUrl, path)}?wallet=${encodeURIComponent(wallet)}`;
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        signal,
+    });
+    const text = await res.text();
+    let body: unknown = null;
+    if (text) {
+        try {
+            body = JSON.parse(text) as unknown;
+        } catch {
+            body = text;
+        }
+    }
+    if (!res.ok) {
+        return { ok: false, status: res.status, body };
+    }
+    const parsed = parseMeterSampleBody(body);
+    if (!parsed) {
+        return { ok: false, status: res.status, body };
+    }
+    return { ok: true, status: res.status, data: parsed };
 }

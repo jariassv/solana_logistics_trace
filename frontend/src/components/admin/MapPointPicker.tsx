@@ -48,11 +48,15 @@ export function MapPointPicker({ value, onChange, ariaLabel }: MapPointPickerPro
 
     const center = useMemo(() => value ?? DEFAULT_CENTER, [value]);
     const zoom = value ? SELECTED_ZOOM : DEFAULT_ZOOM;
+    const mapKey = value
+        ? `${value.lat.toFixed(5)},${value.lng.toFixed(5)}`
+        : "default";
 
     return (
         <div className="geo-map-picker" data-testid="geo-map-picker">
             <p className="text-xs text-muted mb-1">Haga clic en el mapa para fijar el punto.</p>
             <MapContainer
+                key={mapKey}
                 center={[center.lat, center.lng]}
                 zoom={zoom}
                 className="geo-map-picker__canvas"

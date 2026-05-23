@@ -135,7 +135,8 @@ export function RecordCheckpointForm({
         snapshot: meterSnapshot,
         loading: metersLoading,
         error: metersError,
-        refresh: refreshMeters,
+        info: metersInfo,
+        sampleMeters,
     } = useMeterSnapshot(
         apiBaseWellFormed ? apiBaseTrimmed : undefined,
         shipmentServiceId,
@@ -162,12 +163,12 @@ export function RecordCheckpointForm({
         }
     }, [meterSnapshot, applySnapshotToForm]);
 
-    const onRefreshMeters = useCallback(async () => {
-        const fresh = await refreshMeters();
+    const onSampleMeters = useCallback(async () => {
+        const fresh = await sampleMeters();
         if (fresh) {
             applySnapshotToForm(fresh);
         }
-    }, [refreshMeters, applySnapshotToForm]);
+    }, [sampleMeters, applySnapshotToForm]);
 
     const allCpRows = apiCpRows ?? FALLBACK_CP_ROWS;
     const allowedCodes = checkpointTypeCodesForRole(role);
@@ -228,7 +229,7 @@ export function RecordCheckpointForm({
                 setBanner({ kind: "err", text: preflightErr });
                 return;
             }
-            const freshMeters = apiBaseWellFormed ? await refreshMeters() : null;
+            const freshMeters = apiBaseWellFormed ? await sampleMeters() : null;
             const metersForTx = freshMeters ?? meterSnapshot;
             if (freshMeters) {
                 applySnapshotToForm(freshMeters);
@@ -312,7 +313,7 @@ export function RecordCheckpointForm({
         apiBaseUrl,
         apiBaseWellFormed,
         meterSnapshot,
-        refreshMeters,
+        sampleMeters,
         applySnapshotToForm,
         onSuccess,
     ]);
@@ -352,14 +353,18 @@ export function RecordCheckpointForm({
                             type="button"
                             className="btn btn--ghost btn--sm"
                             disabled={busy || metersLoading}
-                            onClick={() => void onRefreshMeters()}
+                            onClick={() => void onSampleMeters()}
                         >
-                            {metersLoading ? "Cargando…" : "Actualizar lecturas"}
+                            {metersLoading ? "Ejecutando…" : "Ejecutar medidores"}
                         </button>
                     </div>
                     {metersError ? (
                         <p className="text-sm admin-form__err mb-0" role="alert">
                             {metersError}
+                        </p>
+                    ) : metersInfo ? (
+                        <p className="text-sm text-muted mb-0" role="status">
+                            {metersInfo}
                         </p>
                     ) : meterSummary ? (
                         <p className="text-sm text-muted mb-0">
