@@ -174,21 +174,64 @@ pub async fn bump_checkpoint_count_update_status(
     tx: &mut Transaction<'_, Postgres>,
     shipment_id: Uuid,
     next_status: Option<&str>,
+    delivered_at: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<(), sqlx::Error> {
     if let Some(next) = next_status {
-        sqlx::query(
-            r#"UPDATE shipments SET checkpoint_count = checkpoint_count + 1, status = $2 WHERE id = $1"#,
-        )
-        .bind(shipment_id)
-        .bind(next)
-        .execute(&mut **tx)
-        .await?;
+        if next == "Delivered" {
+            sqlx::query(
+                r#"UPDATE shipments
+                   SET checkpoint_count = checkpoint_count + 1,
+                       status = $2,
+                       delivered_at = COALESCE(delivered_at, $3)
+                   WHERE id = $1"#,
+            )
+            .bind(shipment_id)
+            .bind(next)
+            .bind(delivered_at)
+            .execute(&mut **tx)
+            .await?;
+        } else {
+            sqlx::query(
+                r#"UPDATE shipments SET checkpoint_count = checkpoint_count + 1, status = $2 WHERE id = $1"#,
+            )
+            .bind(shipment_id)
+            .bind(next)
+            .execute(&mut **tx)
+            .await?;
+        }
     } else {
         sqlx::query(r#"UPDATE shipments SET checkpoint_count = checkpoint_count + 1 WHERE id = $1"#)
             .bind(shipment_id)
             .execute(&mut **tx)
             .await?;
     }
+    Ok(())
+}
+
+/// Corrige envíos con checkpoint `Delivered` pero estado desactualizado (p. ej. sync previo).
+pub async fn reconcile_delivered_status(
+    pool: &PgPool,
+    shipment_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"UPDATE shipments s
+           SET status = 'Delivered',
+               delivered_at = COALESCE(
+                   s.delivered_at,
+                   (SELECT MAX(c.occurred_at)
+                    FROM checkpoints c
+                    WHERE c.shipment_id = s.id AND c.type = 'Delivered')
+               )
+           WHERE s.id = $1
+             AND s.status NOT IN ('Delivered', 'Cancelled', 'Returned')
+             AND EXISTS (
+                 SELECT 1 FROM checkpoints c
+                 WHERE c.shipment_id = s.id AND c.type = 'Delivered'
+             )"#,
+    )
+    .bind(shipment_id)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 

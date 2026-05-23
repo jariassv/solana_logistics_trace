@@ -20,7 +20,12 @@ pub async fn apply_after_checkpoint_inserted(
 ) -> Result<(), sqlx::Error> {
     let current = checkpoints::select_shipment_status(tx, shipment_id).await?;
     let next = resolve_next_status(&current, checkpoint_type);
-    checkpoints::bump_checkpoint_count_update_status(tx, shipment_id, next).await?;
+    let delivered_at = if next == Some("Delivered") {
+        Some(occurred_at)
+    } else {
+        None
+    };
+    checkpoints::bump_checkpoint_count_update_status(tx, shipment_id, next, delivered_at).await?;
 
     if checkpoint_type != "SensorData" {
         checkpoints::touch_last_logistics_checkpoint(tx, shipment_id, occurred_at).await?;
@@ -58,6 +63,15 @@ mod tests {
             resolve_next_status("OutForDelivery", "Delivered"),
             Some("Delivered")
         );
+        assert_eq!(
+            resolve_next_status("InTransit", "Delivered"),
+            Some("Delivered")
+        );
+        assert_eq!(
+            resolve_next_status("InTransit", "DeliveryAttempt"),
+            Some("OutForDelivery")
+        );
         assert_eq!(resolve_next_status("Created", "HubIn"), None);
+        assert_eq!(resolve_next_status("Delivered", "Pickup"), None);
     }
 }

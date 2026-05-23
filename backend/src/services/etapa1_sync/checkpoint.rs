@@ -60,6 +60,11 @@ pub async fn sync_checkpoint(
                     "shipment not found for checkpoint; sync shipment first".into(),
                 )
             })?;
+        if cp_type == "Delivered" {
+            checkpoints::reconcile_delivered_status(pool, shipment_uuid)
+                .await
+                .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
+        }
         return Ok(SyncOutcome {
             created: false,
             body: CheckpointSyncResponse {
