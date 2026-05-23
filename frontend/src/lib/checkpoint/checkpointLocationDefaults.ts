@@ -90,5 +90,9 @@ export function resolveCheckpointLocationDefaults(
 
 /** Si el tipo de evento fija el lugar por ruta, no sobrescribir con GPS del medidor. */
 export function shouldPreserveRouteOnMeterSample(checkpointType: string): boolean {
-    return checkpointType === "Pickup" || checkpointType === "Delivered";
+    return (
+        checkpointType === "Pickup" ||
+        checkpointType === "Delivered" ||
+        checkpointType === "DeliveryAttempt"
+    );
 }

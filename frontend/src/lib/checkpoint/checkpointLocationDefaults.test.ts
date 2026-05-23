@@ -57,8 +57,10 @@ describe("endpointToGeoPoint", () => {
 });
 
 describe("shouldPreserveRouteOnMeterSample", () => {
-    it("keeps pickup location when sampling meters", () => {
+    it("keeps route-fixed locations when sampling meters", () => {
         expect(shouldPreserveRouteOnMeterSample("Pickup")).toBe(true);
+        expect(shouldPreserveRouteOnMeterSample("Delivered")).toBe(true);
+        expect(shouldPreserveRouteOnMeterSample("DeliveryAttempt")).toBe(true);
         expect(shouldPreserveRouteOnMeterSample("Transit")).toBe(false);
     });
 });
