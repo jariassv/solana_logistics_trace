@@ -47,12 +47,13 @@ pub struct ShipmentDetailRow {
     pub incident_count: i32,
     pub created_at: DateTime<Utc>,
     pub delivered_at: Option<DateTime<Utc>>,
+    pub creation_tx_hash: String,
     pub details: ShipmentDetailsRow,
 }
 
 const SHIPMENT_DETAIL_SELECT: &str = r#"SELECT id, on_chain_shipment_id, sender_wallet, recipient_wallet, product, origin,
                   destination, status, requires_cold_chain, checkpoint_count, incident_count,
-                  created_at, delivered_at,
+                  created_at, delivered_at, creation_tx_hash,
                   weight_kg, quantity, quantity_unit, estimated_delivery_at, reference_code, priority, notes"#;
 
 impl<'r> FromRow<'r, PgRow> for ShipmentDetailRow {
@@ -71,6 +72,7 @@ impl<'r> FromRow<'r, PgRow> for ShipmentDetailRow {
             incident_count: row.try_get("incident_count")?,
             created_at: row.try_get("created_at")?,
             delivered_at: row.try_get("delivered_at")?,
+            creation_tx_hash: row.try_get("creation_tx_hash")?,
             details: ShipmentDetailsRow::from_pg_row(row)?,
         })
     }

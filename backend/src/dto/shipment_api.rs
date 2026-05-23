@@ -60,6 +60,7 @@ pub struct CheckpointItemJson {
 pub struct ShipmentDetailJson {
     pub shipment_id: Uuid,
     pub on_chain_shipment_id: String,
+    pub creation_tx_hash: String,
     pub display_label: Option<String>,
     pub product: String,
     pub product_label: Option<String>,
@@ -171,6 +172,7 @@ pub fn shipment_detail_json_from_row(
     ShipmentDetailJson {
         shipment_id: row.id,
         on_chain_shipment_id: row.on_chain_shipment_id.to_string(),
+        creation_tx_hash: row.creation_tx_hash,
         display_label: None,
         product: row.product.clone(),
         product_label,
