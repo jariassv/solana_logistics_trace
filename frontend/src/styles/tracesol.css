@@ -3621,26 +3621,6 @@ table.data-table {
   line-height: 1.4;
 }
 
-.shipment-detail-pro__route-summary {
-  margin: 0;
-  line-height: 1.45;
-  color: var(--color-text);
-}
-
-.shipment-detail-pro__route-summary-label {
-  font-size: 0.65rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-primary);
-  margin-right: 0.35rem;
-}
-
-.shipment-detail-pro__route-summary-arrow {
-  margin: 0 0.4rem;
-  color: var(--color-text-muted);
-}
-
 .shipment-detail-pro__map {
   min-height: 11rem;
   border-radius: var(--radius-sm);

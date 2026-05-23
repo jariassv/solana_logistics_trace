@@ -59,19 +59,8 @@ export function ShipmentRecorridoAside({
         variant === "public" ? JourneyRouteMapPublicLazy : JourneyRouteMapProLazy;
 
     return (
-        <>
-            <p className="shipment-detail-pro__route-summary text-sm mb-2">
-                <span className="shipment-detail-pro__route-summary-label">Origen</span>
-                {originDisplay.title}
-                <span className="shipment-detail-pro__route-summary-arrow" aria-hidden>
-                    →
-                </span>
-                <span className="shipment-detail-pro__route-summary-label">Destino</span>
-                {destinationDisplay.title}
-            </p>
-            <div className={mapWrapClass(variant)}>
-                <JourneyRouteMapLazy points={routePoints} placement="aside" />
-            </div>
-        </>
+        <div className={mapWrapClass(variant)}>
+            <JourneyRouteMapLazy points={routePoints} placement="aside" />
+        </div>
     );
 }
