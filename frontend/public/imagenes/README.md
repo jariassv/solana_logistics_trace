@@ -8,6 +8,7 @@ Coloca aquí recursos estáticos que alimenten la UI (sin import desde bundler: 
 
 | Archivo (sugerido) | Uso |
 |--------------------|-----|
+| `landing-home.png` | Hero de la landing corporativa (`/`). |
 | `timeline-spine.svg` | Línea guía opcional del rail de etapas (envíos). |
 | `logo-mark.svg` | Marca compacta para header o landing. |
 | `stage-*.svg` | Iconos opcionales por etapa de envío. |
