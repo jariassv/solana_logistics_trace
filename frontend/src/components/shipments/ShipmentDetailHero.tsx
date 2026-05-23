@@ -3,6 +3,11 @@ import type { ReactNode } from "react";
 import { ShipmentJourneyTimeline } from "@/components/shipments/ShipmentJourneyTimeline";
 import { IconPackage, IconThermometer } from "@/components/ui/TraceIcons";
 import type { ShipmentDetail } from "@/lib/api/shipments";
+import {
+    formatQuantityLine,
+    formatWeightKg,
+    priorityLabel,
+} from "@/lib/shipment/shipmentDetailsForm";
 import { statusBadgeClass, statusLabel } from "@/lib/shipments/display";
 import { formatParticipantLine, formatParticipantSub } from "@/lib/wallet/display";
 
@@ -34,6 +39,13 @@ export function ShipmentDetailHero({
 }: ShipmentDetailHeroProps) {
     const productTitle = detail.productLabel ?? detail.product;
     const hasAlerts = openIncidentCount > 0;
+    const hasOperationalDetails =
+        detail.weightKg != null ||
+        detail.quantity != null ||
+        detail.estimatedDeliveryAt != null ||
+        detail.referenceCode != null ||
+        detail.notes != null ||
+        detail.priority !== "normal";
 
     return (
         <header className="shipment-hero">
@@ -115,12 +127,46 @@ export function ShipmentDetailHero({
                                 <time dateTime={detail.deliveredAt}>
                                     {formatDate(detail.deliveredAt)}
                                 </time>
+                            ) : detail.estimatedDeliveryAt ? (
+                                <time dateTime={detail.estimatedDeliveryAt}>
+                                    Est. {formatDate(detail.estimatedDeliveryAt)}
+                                </time>
                             ) : (
                                 <span className="shipment-hero__metric-pending">Pendiente</span>
                             )}
                         </dd>
                     </div>
+                    {detail.weightKg != null ? (
+                        <div className="shipment-hero__metric">
+                            <dt>Peso</dt>
+                            <dd>{formatWeightKg(detail.weightKg)}</dd>
+                        </div>
+                    ) : null}
+                    {detail.quantity != null ? (
+                        <div className="shipment-hero__metric">
+                            <dt>Cantidad</dt>
+                            <dd>{formatQuantityLine(detail.quantity, detail.quantityUnit)}</dd>
+                        </div>
+                    ) : null}
+                    {detail.priority !== "normal" ? (
+                        <div className="shipment-hero__metric">
+                            <dt>Prioridad</dt>
+                            <dd>{priorityLabel(detail.priority)}</dd>
+                        </div>
+                    ) : null}
+                    {detail.referenceCode ? (
+                        <div className="shipment-hero__metric">
+                            <dt>Referencia</dt>
+                            <dd className="mono">{detail.referenceCode}</dd>
+                        </div>
+                    ) : null}
                 </dl>
+
+                {hasOperationalDetails && detail.notes ? (
+                    <p className="shipment-hero__notes text-sm text-muted mb-0">
+                        <strong>Notas:</strong> {detail.notes}
+                    </p>
+                ) : null}
 
                 <div className="shipment-hero__actors">
                     <div className="shipment-hero__actor">

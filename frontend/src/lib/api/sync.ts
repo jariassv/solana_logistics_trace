@@ -7,6 +7,21 @@ export type SyncRequestBodySnake = {
     commitment?: string;
 };
 
+/** Detalles off-chain en `POST /shipments/sync` (snake_case). */
+export type ShipmentSyncDetailsSnake = {
+    weight_kg?: number;
+    quantity?: number;
+    quantity_unit?: string;
+    estimated_delivery_at?: string;
+    reference_code?: string;
+    priority?: string;
+    notes?: string;
+};
+
+export type ShipmentSyncRequestBody = SyncRequestBodySnake & {
+    details?: ShipmentSyncDetailsSnake;
+};
+
 function joinBase(apiBaseUrl: string, pathSegment: string): string {
     const base = apiBaseUrl.replace(/\/+$/, "");
     const path = pathSegment.replace(/^\/+/, "");
@@ -50,7 +65,7 @@ export async function postActorsSync(
 
 export async function postShipmentsSync(
     apiBaseUrl: string,
-    body: SyncRequestBodySnake,
+    body: ShipmentSyncRequestBody,
 ): Promise<SyncCallResult> {
     const url = joinBase(apiBaseUrl, "shipments/sync");
     const res = await fetch(url, {

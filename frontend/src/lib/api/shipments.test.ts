@@ -37,6 +37,13 @@ const detailBody = {
     incidentCount: 0,
     openIncidentCount: 0,
     deliveredAt: null,
+    weightKg: 12.5,
+    quantity: 48,
+    quantityUnit: "cajas",
+    estimatedDeliveryAt: "2026-01-10T12:00:00Z",
+    referenceCode: "PO-99",
+    priority: "urgent",
+    notes: "Entregar en horario de mañana",
     checkpoints: [
         {
             checkpointId: "cp-1",
@@ -100,6 +107,9 @@ describe("shipments API client", () => {
         if (res.ok) {
             expect(res.data.checkpointCount).toBe(1);
             expect(res.data.checkpoints[0]?.type).toBe("Pickup");
+            expect(res.data.weightKg).toBe(12.5);
+            expect(res.data.referenceCode).toBe("PO-99");
+            expect(res.data.priority).toBe("urgent");
         }
     });
 

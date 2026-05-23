@@ -67,6 +67,13 @@ export type ShipmentDetail = {
     checkpointCount: number;
     incidentCount: number;
     openIncidentCount: number;
+    weightKg: number | null;
+    quantity: number | null;
+    quantityUnit: string | null;
+    estimatedDeliveryAt: string | null;
+    referenceCode: string | null;
+    priority: string;
+    notes: string | null;
     checkpoints: CheckpointItem[];
     incidents: unknown[];
 };
@@ -242,6 +249,23 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
     const deliveredAt =
         o.deliveredAt === null || o.deliveredAt === undefined ? null : String(o.deliveredAt);
     const incidents = Array.isArray(o.incidents) ? o.incidents : [];
+    const weightKg = asNum(o.weightKg);
+    const quantity = asNum(o.quantity);
+    const quantityUnit =
+        o.quantityUnit === null || o.quantityUnit === undefined
+            ? null
+            : asString(o.quantityUnit) || null;
+    const estimatedDeliveryAt =
+        o.estimatedDeliveryAt === null || o.estimatedDeliveryAt === undefined
+            ? null
+            : asString(o.estimatedDeliveryAt) || null;
+    const referenceCode =
+        o.referenceCode === null || o.referenceCode === undefined
+            ? null
+            : asString(o.referenceCode) || null;
+    const priority = asString(o.priority) ?? "normal";
+    const notes =
+        o.notes === null || o.notes === undefined ? null : asString(o.notes) || null;
     return {
         shipmentId,
         onChainShipmentId,
@@ -261,6 +285,13 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
         checkpointCount,
         incidentCount,
         openIncidentCount,
+        weightKg,
+        quantity,
+        quantityUnit,
+        estimatedDeliveryAt,
+        referenceCode,
+        priority,
+        notes,
         checkpoints,
         incidents,
     };

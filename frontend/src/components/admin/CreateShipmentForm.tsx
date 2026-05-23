@@ -9,6 +9,14 @@ import { getLocationsCatalog, type LocationCatalogItem } from "@/lib/api/locatio
 import { getProductsCatalog, type ProductCatalogItem } from "@/lib/api/products";
 import { apiBaseHasV1Prefix, normalizeApiBaseUrl } from "@/lib/api/backendConnectivity";
 import { postShipmentsSync } from "@/lib/api/sync";
+import {
+    buildShipmentSyncDetails,
+    EMPTY_SHIPMENT_DETAILS_FORM,
+    SHIPMENT_PRIORITIES,
+    SHIPMENT_QUANTITY_UNITS,
+    type ShipmentDetailsFormState,
+    type ShipmentPriority,
+} from "@/lib/shipment/shipmentDetailsForm";
 import { parseGeoPoint } from "@/lib/geo/geoPoint";
 import { locationToShipmentField } from "@/lib/geo/locationCatalog";
 import {
@@ -80,6 +88,9 @@ export function CreateShipmentForm({
     const [locationsLoading, setLocationsLoading] = useState(false);
     const [locationsLoadError, setLocationsLoadError] = useState<string | null>(null);
     const [coldChain, setColdChain] = useState(false);
+    const [detailsForm, setDetailsForm] = useState<ShipmentDetailsFormState>(
+        EMPTY_SHIPMENT_DETAILS_FORM,
+    );
     const [busy, setBusy] = useState(false);
     const [senderActorReady, setSenderActorReady] = useState<boolean | null>(null);
     const [banner, setBanner] = useState<{ kind: "ok" | "err" | "info"; text: string } | null>(
@@ -282,6 +293,12 @@ export function CreateShipmentForm({
             return;
         }
 
+        const detailsPayload = buildShipmentSyncDetails(detailsForm);
+        if (detailsPayload.error) {
+            setBanner({ kind: "err", text: detailsPayload.error });
+            return;
+        }
+
         setBusy(true);
         setBanner(null);
         try {
@@ -305,7 +322,10 @@ export function CreateShipmentForm({
 
             let syncOk = true;
             if (apiBaseUrl.trim()) {
-                const r = await postShipmentsSync(apiBaseUrl, { tx_hash: sig });
+                const r = await postShipmentsSync(apiBaseUrl, {
+                    tx_hash: sig,
+                    ...detailsPayload,
+                });
                 if (r.ok) {
                     setBanner({ kind: "ok", text: syncSuccessCopy.shipment });
                 } else {
@@ -346,6 +366,7 @@ export function CreateShipmentForm({
         destErr,
         senderActorReady,
         role,
+        detailsForm,
     ]);
 
     const disabled =
@@ -580,6 +601,128 @@ export function CreateShipmentForm({
                     ) : null}
                 </div>
             </div>
+
+            <fieldset className="admin-form__section" disabled={busy}>
+                <legend className="admin-form__section-title">Detalles del envío</legend>
+                <p className="text-xs text-muted mb-2">
+                    Información operativa (base de datos). No se almacena en la cuenta on-chain;
+                    se envía al sincronizar con la API.
+                </p>
+                <div className="form-row">
+                    <div className="form-group">
+                        <label htmlFor="admin-ship-weight">Peso (kg)</label>
+                        <input
+                            id="admin-ship-weight"
+                            className="input"
+                            type="number"
+                            min={0}
+                            step="0.001"
+                            inputMode="decimal"
+                            placeholder="Ej. 24.5"
+                            value={detailsForm.weightKg}
+                            onChange={(e) =>
+                                setDetailsForm((f) => ({ ...f, weightKg: e.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="admin-ship-qty">Cantidad</label>
+                        <input
+                            id="admin-ship-qty"
+                            className="input"
+                            type="number"
+                            min={1}
+                            step={1}
+                            placeholder="Ej. 120"
+                            value={detailsForm.quantity}
+                            onChange={(e) =>
+                                setDetailsForm((f) => ({ ...f, quantity: e.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="admin-ship-qty-unit">Unidad</label>
+                        <select
+                            id="admin-ship-qty-unit"
+                            className="select"
+                            value={detailsForm.quantityUnit}
+                            onChange={(e) =>
+                                setDetailsForm((f) => ({ ...f, quantityUnit: e.target.value }))
+                            }
+                        >
+                            {SHIPMENT_QUANTITY_UNITS.map((u) => (
+                                <option key={u.value} value={u.value}>
+                                    {u.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="form-row">
+                    <div className="form-group">
+                        <label htmlFor="admin-ship-eta">Entrega estimada</label>
+                        <input
+                            id="admin-ship-eta"
+                            className="input"
+                            type="datetime-local"
+                            value={detailsForm.estimatedDeliveryLocal}
+                            onChange={(e) =>
+                                setDetailsForm((f) => ({
+                                    ...f,
+                                    estimatedDeliveryLocal: e.target.value,
+                                }))
+                            }
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="admin-ship-ref">Referencia / pedido</label>
+                        <input
+                            id="admin-ship-ref"
+                            className="input"
+                            maxLength={64}
+                            placeholder="Ej. PO-2026-0042"
+                            value={detailsForm.referenceCode}
+                            onChange={(e) =>
+                                setDetailsForm((f) => ({ ...f, referenceCode: e.target.value }))
+                            }
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="admin-ship-priority">Prioridad</label>
+                        <select
+                            id="admin-ship-priority"
+                            className="select"
+                            value={detailsForm.priority}
+                            onChange={(e) =>
+                                setDetailsForm((f) => ({
+                                    ...f,
+                                    priority: e.target.value as ShipmentPriority,
+                                }))
+                            }
+                        >
+                            {SHIPMENT_PRIORITIES.map((p) => (
+                                <option key={p.value} value={p.value}>
+                                    {p.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="form-group mb-0">
+                    <label htmlFor="admin-ship-notes">Notas / instrucciones</label>
+                    <textarea
+                        id="admin-ship-notes"
+                        className="input"
+                        rows={3}
+                        maxLength={2000}
+                        placeholder="Fragil, entregar en horario de mañana…"
+                        value={detailsForm.notes}
+                        onChange={(e) =>
+                            setDetailsForm((f) => ({ ...f, notes: e.target.value }))
+                        }
+                    />
+                </div>
+            </fieldset>
 
             {!programId ? (
                 <p className="text-sm text-muted mb-2">{adminHints.programNotConfigured}</p>
