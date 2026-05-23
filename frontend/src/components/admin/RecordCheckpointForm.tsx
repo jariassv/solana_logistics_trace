@@ -14,7 +14,13 @@ import { apiBaseHasV1Prefix, normalizeApiBaseUrl } from "@/lib/api/backendConnec
 import { loadCheckpointSelectOptions } from "@/lib/api/catalogs";
 import { postCheckpointsSync } from "@/lib/api/sync";
 import { getPublicConfig } from "@/lib/env";
-import { parseGeoPoint, type GeoPoint } from "@/lib/geo/geoPoint";
+import {
+    resolveCheckpointLocationDefaults,
+    shouldPreserveRouteOnMeterSample,
+    type ShipmentRouteEndpoints,
+} from "@/lib/checkpoint/checkpointLocationDefaults";
+import { useLocationsCatalog } from "@/lib/api/useLocationsCatalog";
+import { formatGeoPoint, parseGeoPoint, type GeoPoint } from "@/lib/geo/geoPoint";
 import {
     catalogSourceLabel,
     syncSuccessCopy,
@@ -92,6 +98,7 @@ export type RecordCheckpointFormProps = {
     shipmentPda: PublicKey;
     onChainShipmentId: string;
     shipmentServiceId: string;
+    shipmentEndpoints: ShipmentRouteEndpoints;
     apiBaseUrl: string;
     wallet: string;
     role: string | null;
@@ -105,6 +112,7 @@ export function RecordCheckpointForm({
     shipmentPda,
     onChainShipmentId,
     shipmentServiceId,
+    shipmentEndpoints,
     apiBaseUrl,
     wallet,
     role,
@@ -143,32 +151,43 @@ export function RecordCheckpointForm({
         wallet,
     );
 
-    const applySnapshotToForm = useCallback((snap: MeterSnapshot) => {
-        const fields = meterSnapshotToFormFields(snap);
-        if (fields.coordValue) {
-            setCoordValue(fields.coordValue);
-            setCoordMode("coordinates");
-        }
-        if (fields.temp) {
-            setTemp(fields.temp);
-        }
-        if (fields.humidity) {
-            setHumidity(fields.humidity);
-        }
-    }, []);
+    const { items: locationCatalog } = useLocationsCatalog(
+        apiBaseWellFormed ? apiBaseTrimmed : undefined,
+    );
 
-    useEffect(() => {
-        if (meterSnapshot) {
-            applySnapshotToForm(meterSnapshot);
-        }
-    }, [meterSnapshot, applySnapshotToForm]);
+    const applyLocationDefaults = useCallback(
+        (checkpointCode: string, snap?: MeterSnapshot | null) => {
+            const defaults = resolveCheckpointLocationDefaults(
+                checkpointCode,
+                shipmentEndpoints,
+                locationCatalog,
+                snap ?? meterSnapshot,
+            );
+            setCpLocation(defaults.location);
+            if (defaults.coordinates) {
+                setCoordValue(formatGeoPoint(defaults.coordinates));
+                setCoordMode("coordinates");
+            }
+        },
+        [shipmentEndpoints, locationCatalog, meterSnapshot],
+    );
 
-    const onSampleMeters = useCallback(async () => {
-        const fresh = await sampleMeters();
-        if (fresh) {
-            applySnapshotToForm(fresh);
-        }
-    }, [sampleMeters, applySnapshotToForm]);
+    const applyMeterFields = useCallback(
+        (snap: MeterSnapshot, checkpointCode: string) => {
+            const fields = meterSnapshotToFormFields(snap);
+            if (fields.temp) {
+                setTemp(fields.temp);
+            }
+            if (fields.humidity) {
+                setHumidity(fields.humidity);
+            }
+            if (!shouldPreserveRouteOnMeterSample(checkpointCode) && fields.coordValue) {
+                setCoordValue(fields.coordValue);
+                setCoordMode("coordinates");
+            }
+        },
+        [],
+    );
 
     const allCpRows = apiCpRows ?? FALLBACK_CP_ROWS;
     const allowedCodes = checkpointTypeCodesForRole(role);
@@ -182,6 +201,29 @@ export function RecordCheckpointForm({
 
     const selectedCpType =
         cpRows.find((o) => o.value === cpType)?.value ?? cpRows[0]?.value ?? Cp.Pickup;
+
+    const selectedCpCode = useMemo(
+        () => cpRows.find((o) => o.value === selectedCpType)?.code ?? "Pickup",
+        [cpRows, selectedCpType],
+    );
+
+    useEffect(() => {
+        applyLocationDefaults(selectedCpCode, meterSnapshot);
+    }, [selectedCpCode, applyLocationDefaults, meterSnapshot]);
+
+    useEffect(() => {
+        if (meterSnapshot) {
+            applyMeterFields(meterSnapshot, selectedCpCode);
+        }
+    }, [meterSnapshot, selectedCpCode, applyMeterFields]);
+
+    const onSampleMeters = useCallback(async () => {
+        const fresh = await sampleMeters();
+        if (fresh) {
+            applyLocationDefaults(selectedCpCode, fresh);
+            applyMeterFields(fresh, selectedCpCode);
+        }
+    }, [sampleMeters, selectedCpCode, applyLocationDefaults, applyMeterFields]);
 
     useEffect(() => {
         let cancel = false;
@@ -232,7 +274,8 @@ export function RecordCheckpointForm({
             const freshMeters = apiBaseWellFormed ? await sampleMeters() : null;
             const metersForTx = freshMeters ?? meterSnapshot;
             if (freshMeters) {
-                applySnapshotToForm(freshMeters);
+                applyLocationDefaults(selectedCpCode, freshMeters);
+                applyMeterFields(freshMeters, selectedCpCode);
             }
 
             const cur = await fetchProgramConfig(connection, programId);
@@ -314,7 +357,9 @@ export function RecordCheckpointForm({
         apiBaseWellFormed,
         meterSnapshot,
         sampleMeters,
-        applySnapshotToForm,
+        selectedCpCode,
+        applyLocationDefaults,
+        applyMeterFields,
         onSuccess,
     ]);
 

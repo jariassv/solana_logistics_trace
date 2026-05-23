@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin/shipmentFilters";
 import { canCreateShipmentAction } from "@/lib/admin/shipmentActions";
 import { useAdminState } from "@/lib/admin/useAdminState";
+import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
 import { roleDisplayName } from "@/lib/panel/capabilities";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
@@ -65,6 +66,12 @@ export function AdminWorkspace() {
         }
         return resolveShipmentPda(recordShipment.onChainShipmentId);
     }, [recordShipment, resolveShipmentPda]);
+
+    const { detail: recordDetail, loading: recordDetailLoading } = useShipmentDetail(
+        openModal === "record_checkpoint" ? cfg.apiBaseUrl : undefined,
+        recordShipmentId ?? "",
+        wallet,
+    );
 
     const closeModal = useCallback(() => {
         setOpenModal(null);
@@ -181,18 +188,32 @@ export function AdminWorkspace() {
                 ) : null}
                 {openModal === "record_checkpoint" && programId && payer && wallet ? (
                     recordShipment && recordShipmentPda ? (
-                        <RecordCheckpointForm
-                            connection={connection}
-                            programId={programId}
-                            payer={payer}
-                            shipmentPda={recordShipmentPda}
-                            onChainShipmentId={recordShipment.onChainShipmentId}
-                            shipmentServiceId={recordShipment.shipmentId}
-                            apiBaseUrl={cfg.apiBaseUrl}
-                            wallet={wallet}
-                            role={role}
-                            onSuccess={() => void onFormSuccess()}
-                        />
+                        recordDetailLoading ? (
+                            <p className="text-sm text-muted mb-0" role="status">
+                                Cargando origen y destino del envío…
+                            </p>
+                        ) : recordDetail ? (
+                            <RecordCheckpointForm
+                                connection={connection}
+                                programId={programId}
+                                payer={payer}
+                                shipmentPda={recordShipmentPda}
+                                onChainShipmentId={recordShipment.onChainShipmentId}
+                                shipmentServiceId={recordShipment.shipmentId}
+                                shipmentEndpoints={{
+                                    origin: recordDetail.origin,
+                                    destination: recordDetail.destination,
+                                }}
+                                apiBaseUrl={cfg.apiBaseUrl}
+                                wallet={wallet}
+                                role={role}
+                                onSuccess={() => void onFormSuccess()}
+                            />
+                        ) : (
+                            <p className="text-sm text-muted mb-0" role="status">
+                                No se pudieron cargar origen y destino del envío.
+                            </p>
+                        )
                     ) : (
                         <p className="text-sm text-muted mb-0">
                             No se pudo resolver el envío seleccionado.

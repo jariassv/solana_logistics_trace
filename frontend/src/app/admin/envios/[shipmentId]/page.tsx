@@ -157,6 +157,10 @@ export default function AdminShipmentDetailPage() {
                         shipmentPda={shipmentPda}
                         onChainShipmentId={detail.onChainShipmentId}
                         shipmentServiceId={detail.shipmentId}
+                        shipmentEndpoints={{
+                            origin: detail.origin,
+                            destination: detail.destination,
+                        }}
                         apiBaseUrl={cfg.apiBaseUrl}
                         wallet={wallet}
                         role={role}
