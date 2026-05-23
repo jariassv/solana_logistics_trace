@@ -70,14 +70,25 @@ function parsePositiveInt(raw: string): number | null {
     return Number.isInteger(n) ? n : null;
 }
 
-/** Convierte valor de `<input type="datetime-local">` a ISO UTC. */
-export function datetimeLocalToIsoUtc(local: string): string | null {
-    const t = local.trim();
+/** Convierte valor de `<input type="date">` (YYYY-MM-DD) a ISO UTC (medianoche UTC). */
+export function dateInputToIsoUtc(dateValue: string): string | null {
+    const t = dateValue.trim();
     if (!t) {
         return null;
     }
-    const d = new Date(t);
-    if (Number.isNaN(d.getTime())) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+    if (!m) {
+        return null;
+    }
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    const d = new Date(Date.UTC(year, month - 1, day));
+    if (
+        d.getUTCFullYear() !== year ||
+        d.getUTCMonth() !== month - 1 ||
+        d.getUTCDate() !== day
+    ) {
         return null;
     }
     return d.toISOString();
@@ -112,10 +123,10 @@ export function buildShipmentSyncDetails(
         any = true;
     }
 
-    const eta = datetimeLocalToIsoUtc(form.estimatedDeliveryLocal);
+    const eta = dateInputToIsoUtc(form.estimatedDeliveryLocal);
     if (form.estimatedDeliveryLocal.trim()) {
         if (!eta) {
-            return { error: "Fecha de entrega estimada no válida." };
+            return { error: "Fecha de entrega estimada no válida (use AAAA-MM-DD)." };
         }
         out.estimated_delivery_at = eta;
         any = true;

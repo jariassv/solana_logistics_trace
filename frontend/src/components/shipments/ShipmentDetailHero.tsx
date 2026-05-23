@@ -30,6 +30,14 @@ function formatDate(iso: string): string {
     }
 }
 
+function formatDateOnly(iso: string): string {
+    try {
+        return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+    } catch {
+        return iso;
+    }
+}
+
 export function ShipmentDetailHero({
     detail,
     openIncidentCount,
@@ -129,7 +137,7 @@ export function ShipmentDetailHero({
                                 </time>
                             ) : detail.estimatedDeliveryAt ? (
                                 <time dateTime={detail.estimatedDeliveryAt}>
-                                    Est. {formatDate(detail.estimatedDeliveryAt)}
+                                    Est. {formatDateOnly(detail.estimatedDeliveryAt)}
                                 </time>
                             ) : (
                                 <span className="shipment-hero__metric-pending">Pendiente</span>

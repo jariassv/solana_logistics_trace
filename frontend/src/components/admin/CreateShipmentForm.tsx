@@ -608,7 +608,7 @@ export function CreateShipmentForm({
                         <input
                             id="admin-ship-eta"
                             className="input"
-                            type="datetime-local"
+                            type="date"
                             value={detailsForm.estimatedDeliveryLocal}
                             onChange={(e) =>
                                 setDetailsForm((f) => ({

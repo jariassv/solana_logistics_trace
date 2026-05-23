@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     buildShipmentSyncDetails,
-    datetimeLocalToIsoUtc,
+    dateInputToIsoUtc,
     EMPTY_SHIPMENT_DETAILS_FORM,
 } from "./shipmentDetailsForm";
 
@@ -30,9 +30,12 @@ describe("buildShipmentSyncDetails", () => {
     });
 });
 
-describe("datetimeLocalToIsoUtc", () => {
-    it("parses local datetime", () => {
-        const iso = datetimeLocalToIsoUtc("2026-05-20T14:30");
-        expect(iso).toMatch(/^2026-05-20/);
+describe("dateInputToIsoUtc", () => {
+    it("parses date-only input as UTC midnight", () => {
+        expect(dateInputToIsoUtc("2026-05-20")).toBe("2026-05-20T00:00:00.000Z");
+    });
+
+    it("rejects invalid date", () => {
+        expect(dateInputToIsoUtc("2026-13-40")).toBeNull();
     });
 });
