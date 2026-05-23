@@ -4,7 +4,7 @@ use crate::{
     constants::{ACTOR_SEED, CONFIG_SEED, SHIPMENT_SEED},
     error::ErrorCode,
     events::ShipmentCreated,
-    state::{Actor, ProgramConfig, Shipment, ShipmentStatus},
+    state::{Actor, ProgramConfig, Shipment, ShipmentPriority, ShipmentStatus},
 };
 
 #[derive(Accounts)]
@@ -34,6 +34,13 @@ pub fn process_create_shipment(
     origin: String,
     destination: String,
     requires_cold_chain: bool,
+    weight_grams: u32,
+    quantity: u32,
+    quantity_unit: String,
+    estimated_delivery_at: i64,
+    reference_code: String,
+    priority: ShipmentPriority,
+    notes: String,
 ) -> Result<()> {
     require!(
         ctx.accounts.recipient.key() != Pubkey::default(),
@@ -42,6 +49,9 @@ pub fn process_create_shipment(
     require!(product.len() <= 64, ErrorCode::StringTooLong);
     require!(origin.len() <= 128, ErrorCode::StringTooLong);
     require!(destination.len() <= 128, ErrorCode::StringTooLong);
+    require!(quantity_unit.len() <= 32, ErrorCode::StringTooLong);
+    require!(reference_code.len() <= 64, ErrorCode::StringTooLong);
+    require!(notes.len() <= 256, ErrorCode::StringTooLong);
 
     let cfg = &mut ctx.accounts.program_config;
     let new_id = cfg
@@ -63,6 +73,13 @@ pub fn process_create_shipment(
     s.incident_count = 0;
     s.date_created = now;
     s.date_delivered = 0;
+    s.weight_grams = weight_grams;
+    s.quantity = quantity;
+    s.quantity_unit = quantity_unit;
+    s.estimated_delivery_at = estimated_delivery_at;
+    s.reference_code = reference_code;
+    s.priority = priority;
+    s.notes = notes;
 
     cfg.shipments_created = new_id;
 

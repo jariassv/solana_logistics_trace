@@ -36,8 +36,28 @@ pub mod logistics_traceability {
         origin: String,
         destination: String,
         requires_cold_chain: bool,
+        weight_grams: u32,
+        quantity: u32,
+        quantity_unit: String,
+        estimated_delivery_at: i64,
+        reference_code: String,
+        priority: ShipmentPriority,
+        notes: String,
     ) -> Result<()> {
-        process_create_shipment(ctx, product, origin, destination, requires_cold_chain)
+        process_create_shipment(
+            ctx,
+            product,
+            origin,
+            destination,
+            requires_cold_chain,
+            weight_grams,
+            quantity,
+            quantity_unit,
+            estimated_delivery_at,
+            reference_code,
+            priority,
+            notes,
+        )
     }
 
     pub fn record_checkpoint(

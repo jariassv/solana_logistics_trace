@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 
+import { ShipmentOperationalDetails } from "@/components/shipments/ShipmentOperationalDetails";
 import { CheckpointTable } from "@/components/shipments/CheckpointTable";
 import { CheckpointTimeline } from "@/components/panel/CheckpointTimeline";
 import { statusBadgeClass } from "@/lib/shipments/display";
@@ -101,6 +102,14 @@ function SummaryGrid({
                         </p>
                     </div>
                 ) : null}
+                <div className="shipment-detail__operational">
+                    <span className="text-muted">Detalles operativos</span>
+                    <ShipmentOperationalDetails
+                        detail={detail}
+                        variant="summary"
+                        className="mb-0 mt-1"
+                    />
+                </div>
             </div>
         </div>
     );
@@ -120,6 +129,7 @@ function SummaryProse({ detail }: { detail: ShipmentDetail }) {
                 <p>
                     <strong>Origen → destino:</strong> {detail.origin} → {detail.destination}
                 </p>
+                <ShipmentOperationalDetails detail={detail} variant="summary" />
                 <p className="mono text-xs break-all">
                     <strong>Remitente:</strong> {detail.sender}
                 </p>

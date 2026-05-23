@@ -1,6 +1,6 @@
 //! Validación y serialización de detalles operativos del envío (off-chain).
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use rocket::serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -213,9 +213,97 @@ pub fn shipment_details_value(d: &ShipmentDetailsJson) -> Value {
     serde_json::to_value(d).unwrap_or_else(|_| json!({}))
 }
 
+impl ShipmentDetailsPersist {
+    fn field_is_set(&self) -> bool {
+        self.weight_kg.is_some()
+            || self.quantity.is_some()
+            || self.quantity_unit.is_some()
+            || self.estimated_delivery_at.is_some()
+            || self.reference_code.is_some()
+            || self.notes.is_some()
+            || self.priority != PRIORITY_NORMAL
+    }
+}
+
+#[must_use]
+pub fn priority_code_from_schema(
+    p: crate::solana::borsh_accounts::ShipmentPrioritySchema,
+) -> &'static str {
+    use crate::solana::borsh_accounts::ShipmentPrioritySchema;
+    match p {
+        ShipmentPrioritySchema::Normal => PRIORITY_NORMAL,
+        ShipmentPrioritySchema::Urgent => PRIORITY_URGENT,
+        ShipmentPrioritySchema::Express => PRIORITY_EXPRESS,
+    }
+}
+
+/// Detalles leídos de la cuenta `Shipment` on-chain.
+#[must_use]
+pub fn shipment_details_from_account(
+    s: &crate::solana::borsh_accounts::ShipmentAccountData,
+) -> ShipmentDetailsPersist {
+    let weight_kg = if s.weight_grams > 0 {
+        Some(s.weight_grams as f64 / 1000.0)
+    } else {
+        None
+    };
+    let quantity = if s.quantity > 0 {
+        Some(s.quantity as i32)
+    } else {
+        None
+    };
+    let quantity_unit = trim_opt(Some(s.quantity_unit.clone()));
+    let estimated_delivery_at = if s.estimated_delivery_at > 0 {
+        Utc.timestamp_opt(s.estimated_delivery_at, 0).single()
+    } else {
+        None
+    };
+    let reference_code = trim_opt(Some(s.reference_code.clone()));
+    let notes = trim_opt(Some(s.notes.clone()));
+    ShipmentDetailsPersist {
+        weight_kg,
+        quantity,
+        quantity_unit,
+        estimated_delivery_at,
+        reference_code,
+        priority: priority_code_from_schema(s.priority).to_string(),
+        notes,
+    }
+}
+
+/// Prioriza valores on-chain; el cuerpo de sync rellena huecos (compatibilidad).
+#[must_use]
+pub fn merge_shipment_details(
+    chain: ShipmentDetailsPersist,
+    body: Option<ShipmentDetailsPersist>,
+) -> ShipmentDetailsPersist {
+    let Some(b) = body else {
+        return chain;
+    };
+    if !chain.field_is_set() && b.field_is_set() {
+        return b;
+    }
+    ShipmentDetailsPersist {
+        weight_kg: chain.weight_kg.or(b.weight_kg),
+        quantity: chain.quantity.or(b.quantity),
+        quantity_unit: chain.quantity_unit.or(b.quantity_unit),
+        estimated_delivery_at: chain.estimated_delivery_at.or(b.estimated_delivery_at),
+        reference_code: chain.reference_code.or(b.reference_code),
+        priority: if chain.priority != PRIORITY_NORMAL {
+            chain.priority
+        } else {
+            b.priority
+        },
+        notes: chain.notes.or(b.notes),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::solana::borsh_accounts::{
+        ShipmentAccountData, ShipmentPrioritySchema, ShipmentStatusSchema,
+    };
 
     #[test]
     fn empty_details_input_is_none() {
@@ -245,5 +333,34 @@ mod tests {
         }))
         .unwrap_err();
         assert!(err.contains("weight_kg"));
+    }
+
+    #[test]
+    fn maps_on_chain_shipment_details() {
+        let s = ShipmentAccountData {
+            id: 1,
+            sender: [0; 32],
+            recipient: [0; 32],
+            product: "p".into(),
+            origin: "o".into(),
+            destination: "d".into(),
+            status: ShipmentStatusSchema::Created,
+            requires_cold_chain: false,
+            checkpoint_count: 0,
+            incident_count: 0,
+            date_created: 0,
+            date_delivered: 0,
+            weight_grams: 12_500,
+            quantity: 10,
+            quantity_unit: "cajas".into(),
+            estimated_delivery_at: 1_700_000_000,
+            reference_code: "PO-1".into(),
+            priority: ShipmentPrioritySchema::Urgent,
+            notes: "fragil".into(),
+        };
+        let d = shipment_details_from_account(&s);
+        assert_eq!(d.weight_kg, Some(12.5));
+        assert_eq!(d.quantity, Some(10));
+        assert_eq!(d.priority, PRIORITY_URGENT);
     }
 }

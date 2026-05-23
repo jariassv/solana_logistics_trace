@@ -28,6 +28,7 @@ import {
 } from "@/lib/panel/etapa1UserMessages";
 import { confirmSerializedTx } from "@/lib/solana/confirmSerializedTx";
 import { createCreateShipmentIx } from "@/lib/solana/instructions";
+import { shipmentDetailsToChainArgs } from "@/lib/solana/shipmentChainDetails";
 import { fetchProgramConfig } from "@/lib/solana/program_config";
 import { actorPda } from "@/lib/solana/pdas";
 
@@ -283,6 +284,12 @@ export function CreateShipmentForm({
             return;
         }
 
+        const chainArgs = shipmentDetailsToChainArgs(detailsForm);
+        if (chainArgs.error) {
+            setBanner({ kind: "err", text: chainArgs.error });
+            return;
+        }
+
         setBusy(true);
         setBanner(null);
         try {
@@ -301,6 +308,7 @@ export function CreateShipmentForm({
                 origin: origin.trim(),
                 destination: destination.trim(),
                 requiresColdChain: coldChain,
+                extras: chainArgs.chain,
             });
             const sig = await confirmSerializedTx(connection, payer, ix);
 
@@ -658,7 +666,7 @@ export function CreateShipmentForm({
                         id="admin-ship-notes"
                         className="input"
                         rows={3}
-                        maxLength={2000}
+                        maxLength={256}
                         placeholder="Fragil, entregar en horario de mañana…"
                         value={detailsForm.notes}
                         onChange={(e) =>

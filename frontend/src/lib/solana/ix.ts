@@ -22,6 +22,13 @@ export enum ActorRoleCode {
     Inspector,
 }
 
+/** Índices Borsh de `ShipmentPriority` en orden del programa. */
+export enum ShipmentPriorityCode {
+    Normal = 0,
+    Urgent,
+    Express,
+}
+
 /** Índices Borsh de `CheckpointType` en orden del programa. */
 export enum CheckpointTypeCode {
     Pickup = 0,
@@ -81,12 +88,35 @@ export function encodeRegisterActorData(
     ]);
 }
 
+function encodeU32(value: number): Buffer {
+    const b = Buffer.alloc(4);
+    b.writeUInt32LE(value >>> 0, 0);
+    return b;
+}
+
+function encodeI64(value: bigint): Buffer {
+    const b = Buffer.alloc(8);
+    b.writeBigInt64LE(value, 0);
+    return b;
+}
+
+export type CreateShipmentExtras = {
+    weightGrams: number;
+    quantity: number;
+    quantityUnit: string;
+    estimatedDeliveryAt: bigint;
+    referenceCode: string;
+    priority: ShipmentPriorityCode;
+    notes: string;
+};
+
 /** Cuerpo de instrucción `create_shipment`. */
 export function encodeCreateShipmentData(
     product: string,
     origin: string,
     destination: string,
     requiresColdChain: boolean,
+    extras: CreateShipmentExtras,
 ): Buffer {
     return Buffer.concat([
         IX_CREATE_SHIPMENT,
@@ -94,6 +124,13 @@ export function encodeCreateShipmentData(
         encodeBorshString(origin),
         encodeBorshString(destination),
         Buffer.from([requiresColdChain ? 1 : 0]),
+        encodeU32(extras.weightGrams),
+        encodeU32(extras.quantity),
+        encodeBorshString(extras.quantityUnit),
+        encodeI64(extras.estimatedDeliveryAt),
+        encodeBorshString(extras.referenceCode),
+        Buffer.from([extras.priority]),
+        encodeBorshString(extras.notes),
     ]);
 }
 

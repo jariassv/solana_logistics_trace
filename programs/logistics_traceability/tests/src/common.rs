@@ -129,6 +129,41 @@ pub fn rpc_transaction_logs(program: &Program<&Keypair>, sig: &Signature) -> Vec
     }
 }
 
+use logistics_traceability::{
+    instruction::CreateShipment as CreateShipmentArgs,
+    state::ShipmentPriority,
+};
+
+/// Argumentos mínimos para `create_shipment` en tests de integración.
+pub fn simple_create_shipment_args(
+    product: &str,
+    origin: &str,
+    destination: &str,
+) -> CreateShipmentArgs {
+    create_shipment_args(product, origin, destination, false)
+}
+
+pub fn create_shipment_args(
+    product: &str,
+    origin: &str,
+    destination: &str,
+    requires_cold_chain: bool,
+) -> CreateShipmentArgs {
+    CreateShipmentArgs {
+        product: product.to_string(),
+        origin: origin.to_string(),
+        destination: destination.to_string(),
+        requires_cold_chain,
+        weight_grams: 0,
+        quantity: 0,
+        quantity_unit: String::new(),
+        estimated_delivery_at: 0,
+        reference_code: String::new(),
+        priority: ShipmentPriority::Normal,
+        notes: String::new(),
+    }
+}
+
 pub fn logs_contain_anchor_event<T>(logs: &[String]) -> bool
 where
     T: anchor_lang::Event,

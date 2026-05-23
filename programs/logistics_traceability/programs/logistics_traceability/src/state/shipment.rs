@@ -13,6 +13,14 @@ pub enum ShipmentStatus {
     Cancelled,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace, Default)]
+pub enum ShipmentPriority {
+    #[default]
+    Normal,
+    Urgent,
+    Express,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
 pub enum CheckpointType {
     Pickup,
@@ -42,6 +50,19 @@ pub struct Shipment {
     pub incident_count: u32,
     pub date_created: i64,
     pub date_delivered: i64,
+    /// Peso en gramos; 0 = no indicado.
+    pub weight_grams: u32,
+    /// Cantidad de bultos/unidades; 0 = no indicado.
+    pub quantity: u32,
+    #[max_len(32)]
+    pub quantity_unit: String,
+    /// Unix timestamp (UTC); 0 = no indicado.
+    pub estimated_delivery_at: i64,
+    #[max_len(64)]
+    pub reference_code: String,
+    pub priority: ShipmentPriority,
+    #[max_len(256)]
+    pub notes: String,
 }
 
 /// MVP checkpoint-driven transitions (same subset as backend `shipment_status`).

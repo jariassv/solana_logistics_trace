@@ -123,12 +123,7 @@ fn cancel_shipment_by_sender_sets_cancelled() {
             shipment: ship_k,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "p".to_string(),
-            origin: "a".to_string(),
-            destination: "b".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args("p", "a", "b"))
         .send()
         .expect("create_shipment");
 
@@ -192,12 +187,7 @@ fn confirm_delivery_by_recipient_when_out_for_delivery() {
             shipment: ship_k,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "p".to_string(),
-            origin: "a".to_string(),
-            destination: "b".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args("p", "a", "b"))
         .signer(&sender)
         .send()
         .expect("create_shipment");
@@ -273,12 +263,7 @@ fn confirm_delivery_fails_when_not_out_for_delivery() {
             shipment: ship_k,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "p".to_string(),
-            origin: "a".to_string(),
-            destination: "b".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args("p", "a", "b"))
         .signer(&sender)
         .send()
         .expect("create_shipment");

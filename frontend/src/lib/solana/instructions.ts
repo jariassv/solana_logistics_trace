@@ -8,6 +8,7 @@ import {
     encodeRecordCheckpointData,
     encodeRegisterActorData,
     encodeReportCriticalIncidentData,
+    type CreateShipmentExtras,
     type CriticalIncidentTypeCode,
     type OnChainIncidentSeverityCode,
 } from "./ix";
@@ -36,6 +37,7 @@ export type BuildCreateShipmentParams = {
     origin: string;
     destination: string;
     requiresColdChain: boolean;
+    extras: CreateShipmentExtras;
 };
 
 export type BuildReportCriticalIncidentParams = {
@@ -125,6 +127,7 @@ export function createCreateShipmentIx(p: BuildCreateShipmentParams): Transactio
             p.origin,
             p.destination,
             p.requiresColdChain,
+            p.extras,
         ),
     });
 }

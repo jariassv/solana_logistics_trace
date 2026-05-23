@@ -67,12 +67,7 @@ fn record_checkpoint_increments_shipment_checkpoint_count() {
             shipment: shipment_pda,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "SKU-trace".to_string(),
-            origin: "A".to_string(),
-            destination: "B".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args("SKU-trace", "A", "B"))
         .send()
         .expect("create_shipment");
 
