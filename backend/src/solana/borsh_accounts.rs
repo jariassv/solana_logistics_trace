@@ -24,6 +24,13 @@ pub struct ActorAccountData {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShipmentPrioritySchema {
+    Normal,
+    Urgent,
+    Express,
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShipmentStatusSchema {
     Created,
     InTransit,
@@ -48,6 +55,13 @@ pub struct ShipmentAccountData {
     pub incident_count: u32,
     pub date_created: i64,
     pub date_delivered: i64,
+    pub weight_grams: u32,
+    pub quantity: u32,
+    pub quantity_unit: String,
+    pub estimated_delivery_at: i64,
+    pub reference_code: String,
+    pub priority: ShipmentPrioritySchema,
+    pub notes: String,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy, PartialEq, Eq)]

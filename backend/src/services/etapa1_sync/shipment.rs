@@ -7,7 +7,9 @@ use super::{
     first_matching_account, pubkey_bs58, validate_signature_base58, ShipmentSyncRequestBody,
     ShipmentSyncResponse, SyncOutcome,
 };
-use crate::dto::shipment_details::normalize_shipment_sync_details;
+use crate::dto::shipment_details::{
+    merge_shipment_details, normalize_shipment_sync_details, shipment_details_from_account,
+};
 use crate::incident_engine::MonitoringService;
 use crate::repos::shipments;
 use crate::solana::decode::{decode_shipment_account, shipment_status_code};
@@ -23,7 +25,7 @@ pub async fn sync_shipment(
 ) -> Result<SyncOutcome<ShipmentSyncResponse>, SolanaSyncError> {
     validate_signature_base58(&body.tx_hash)?;
     let commitment = body.commitment();
-    let details = normalize_shipment_sync_details(body.details.clone())
+    let body_details = normalize_shipment_sync_details(body.details.clone())
         .map_err(SolanaSyncError::Validation)?;
 
     let tx_json = rpc
@@ -73,6 +75,9 @@ pub async fn sync_shipment(
         SolanaSyncError::Validation("on_chain_shipment_id overflow".into())
     })?;
 
+    let chain_details = shipment_details_from_account(&shipment);
+    let details = merge_shipment_details(chain_details, body_details);
+
     let row = shipments::insert_shipment_returning_id(
         pool,
         on_chain_id_i64,
@@ -88,7 +93,7 @@ pub async fn sync_shipment(
         created_at,
         delivered_at,
         &body.tx_hash,
-        details.as_ref(),
+        Some(&details),
     )
     .await
     .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;

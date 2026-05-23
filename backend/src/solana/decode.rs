@@ -101,6 +101,13 @@ mod tests {
             incident_count: 0,
             date_created: 9,
             date_delivered: 0,
+            weight_grams: 0,
+            quantity: 0,
+            quantity_unit: String::new(),
+            estimated_delivery_at: 0,
+            reference_code: String::new(),
+            priority: crate::solana::borsh_accounts::ShipmentPrioritySchema::Normal,
+            notes: String::new(),
         };
         let mut buf = disc.to_vec();
         buf.extend_from_slice(&borsh::to_vec(&inner).expect("serialize"));
