@@ -8,12 +8,14 @@ export type JourneyStepTooltipProps = {
     id: string;
     insight: JourneyStepInsight;
     children: ReactNode;
+    hostClassName?: string;
 };
 
-export function JourneyStepTooltip({ id, insight, children }: JourneyStepTooltipProps) {
+export function JourneyStepTooltip({ id, insight, children, hostClassName }: JourneyStepTooltipProps) {
     const tooltipId = `journey-tip-${id}`;
+    const hostCls = ["shipment-journey__tip-host", hostClassName].filter(Boolean).join(" ");
     return (
-        <span className="shipment-journey__tip-host">
+        <span className={hostCls}>
             <span className="shipment-journey__tip-trigger" aria-describedby={tooltipId} tabIndex={0}>
                 {children}
             </span>

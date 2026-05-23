@@ -11,6 +11,7 @@ import {
     exceptionStatusLabel,
     journeyRailStatusCaption,
     resolveJourneyStepStates,
+    resolveNowStepId,
 } from "@/lib/shipments/journeyTimeline";
 
 export type ShipmentJourneyTimelineProps = {
@@ -37,6 +38,7 @@ export function ShipmentJourneyTimeline({
         .filter((c) => c.type !== "SensorData" && !c.actor.startsWith("system@"))
         .map((c) => c.type);
     const steps = resolveJourneyStepStates(status, logisticsTypes);
+    const nowStepId = resolveNowStepId(checkpoints, createdAt);
     const exception = exceptionStatusLabel(status);
 
     const originInsight = buildEndpointInsight(
@@ -72,7 +74,11 @@ export function ShipmentJourneyTimeline({
                 <div className="shipment-journey__corridor-line" aria-hidden>
                     <span className="shipment-journey__corridor-track" />
                 </div>
-                <JourneyStepTooltip id="endpoint-dest" insight={destinationInsight}>
+                <JourneyStepTooltip
+                    id="endpoint-dest"
+                    insight={destinationInsight}
+                    hostClassName="shipment-journey__tip-host--dest"
+                >
                     <div className="shipment-journey__endpoint shipment-journey__endpoint--dest">
                         <span className="shipment-journey__endpoint-icon" aria-hidden>
                             <IconMapPin className="trace-icon shipment-journey__endpoint-pin" />
@@ -140,7 +146,7 @@ export function ShipmentJourneyTimeline({
                                         </span>
                                     </JourneyStepTooltip>
                                     <span className="shipment-journey__label">{step.label}</span>
-                                    {state === "current" ? (
+                                    {step.id === nowStepId ? (
                                         <span className="shipment-journey__here">Ahora</span>
                                     ) : null}
                                 </li>

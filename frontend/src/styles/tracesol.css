@@ -2887,7 +2887,7 @@ table.data-table {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: 0.65rem;
-  align-items: center;
+  align-items: start;
 }
 
 .shipment-journey__endpoint {
@@ -2918,7 +2918,17 @@ table.data-table {
 }
 
 .shipment-journey__endpoint--dest {
+  align-items: flex-end;
   text-align: right;
+}
+
+.shipment-journey__tip-host--dest {
+  margin-left: auto;
+}
+
+.shipment-journey__tip-host--dest .shipment-journey__tip-trigger {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .shipment-journey__endpoint-tag {
@@ -3007,6 +3017,7 @@ table.data-table {
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
   width: 3.5rem;
   flex-shrink: 0;
 }

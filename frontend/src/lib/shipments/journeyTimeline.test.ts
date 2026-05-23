@@ -7,6 +7,7 @@ import {
     JOURNEY_EVENT_STEPS,
     parseCoordEndpoint,
     resolveJourneyStepStates,
+    resolveNowStepId,
 } from "./journeyTimeline";
 
 describe("parseCoordEndpoint", () => {
@@ -53,6 +54,40 @@ describe("resolveJourneyStepStates", () => {
         const steps = resolveJourneyStepStates("AtHub", ["Pickup", "Transit"]);
         const hub = steps.find((s) => s.step.id === "hub");
         expect(hub?.state).toBe("current");
+    });
+});
+
+describe("resolveNowStepId", () => {
+    const pickupCp: CheckpointItem = {
+        checkpointId: "1",
+        onChainCheckpointId: "1",
+        type: "Pickup",
+        occurredAt: "2026-01-01T10:00:00Z",
+        location: null,
+        actor: "a",
+        actorWalletMasked: "x",
+        actorDisplayName: "A",
+        actorRole: null,
+        temperatureCenti: null,
+        humidity: null,
+        latitude: null,
+        longitude: null,
+        metadata: {},
+        txHash: "t1",
+    };
+    const transitCp: CheckpointItem = {
+        ...pickupCp,
+        checkpointId: "2",
+        type: "Transit",
+        occurredAt: "2026-01-02T12:00:00Z",
+    };
+
+    it("uses latest logistics checkpoint", () => {
+        expect(resolveNowStepId([pickupCp, transitCp], "2026-01-01T09:00:00Z")).toBe("transit");
+    });
+
+    it("defaults to created without checkpoints", () => {
+        expect(resolveNowStepId([], "2026-01-01T09:00:00Z")).toBe("created");
     });
 });
 

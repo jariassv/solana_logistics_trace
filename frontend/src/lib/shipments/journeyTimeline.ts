@@ -169,6 +169,44 @@ export function buildEndpointInsight(
     return { lines };
 }
 
+export function checkpointTypeToJourneyStepId(type: string): string {
+    switch (type) {
+        case "Pickup":
+            return "pickup";
+        case "Transit":
+            return "transit";
+        case "HubIn":
+        case "HubOut":
+            return "hub";
+        case "DeliveryAttempt":
+            return "out";
+        case "Delivered":
+            return "delivered";
+        default:
+            return "created";
+    }
+}
+
+/** Etapa del rail que corresponde al último evento logístico registrado. */
+export function resolveNowStepId(
+    checkpoints: readonly CheckpointItem[],
+    _createdAt: string,
+): string {
+    const logistics = checkpoints.filter(
+        (c) => c.type !== "SensorData" && !c.actor.startsWith("system@"),
+    );
+    if (logistics.length === 0) {
+        return "created";
+    }
+    let latest = logistics[0]!;
+    for (const c of logistics) {
+        if (c.occurredAt > latest.occurredAt) {
+            latest = c;
+        }
+    }
+    return checkpointTypeToJourneyStepId(latest.type);
+}
+
 export function resolveJourneyStepStates(
     status: string,
     checkpointTypes: Iterable<string>,
