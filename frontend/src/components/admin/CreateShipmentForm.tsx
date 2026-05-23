@@ -31,26 +31,20 @@ import { createCreateShipmentIx } from "@/lib/solana/instructions";
 import { fetchProgramConfig } from "@/lib/solana/program_config";
 import { actorPda } from "@/lib/solana/pdas";
 
-function LocationPreview({
-    item,
-    coord,
-}: {
-    item: LocationCatalogItem;
-    coord: string;
-}) {
-    return (
-        <div
-            className="text-xs text-muted mb-0 mt-2 p-2 border border-default rounded"
-            role="status"
-        >
-            <p className="mb-1">{item.description}</p>
-            <p className="mb-0">
-                <strong>{item.facilityTypeLabel || item.facilityType}</strong>
-                {" · "}
-                <strong>Coordenadas:</strong> {coord}
-            </p>
-        </div>
-    );
+function applyLocationDefaults(
+    locations: LocationCatalogItem[],
+): { originCode: string; origin: string; destinationCode: string; destination: string } {
+    const first = locations[0];
+    if (!first) {
+        return { originCode: "", origin: "", destinationCode: "", destination: "" };
+    }
+    const dest = locations.length > 1 ? locations[1]! : first;
+    return {
+        originCode: first.code,
+        origin: locationToShipmentField(first),
+        destinationCode: dest.code,
+        destination: locationToShipmentField(dest),
+    };
 }
 
 export type CreateShipmentFormProps = {
@@ -218,6 +212,11 @@ export function CreateShipmentForm({
             if (res.ok) {
                 setLocationOptions(res.data);
                 setLocationsLoadError(null);
+                const defaults = applyLocationDefaults(res.data);
+                setOriginCode(defaults.originCode);
+                setOrigin(defaults.origin);
+                setDestinationCode(defaults.destinationCode);
+                setDestination(defaults.destination);
             } else {
                 setLocationOptions([]);
                 setOriginCode("");
@@ -233,12 +232,7 @@ export function CreateShipmentForm({
         };
     }, [apiBaseTrimmed, apiBaseWellFormed]);
 
-    const selectedProduct =
-        productOptions.find((p) => p.code === productCode) ?? null;
-    const selectedOrigin =
-        locationOptions.find((l) => l.code === originCode) ?? null;
-    const selectedDestination =
-        locationOptions.find((l) => l.code === destinationCode) ?? null;
+    const selectedProduct = productOptions.find((p) => p.code === productCode) ?? null;
 
     useEffect(() => {
         let cancel = false;
@@ -253,17 +247,6 @@ export function CreateShipmentForm({
         };
     }, [connection, programId, payer]);
 
-    const originErr = !originCode
-        ? "Seleccione el origen en el catálogo."
-        : parseGeoPoint(origin)
-          ? null
-          : "Origen: coordenadas inválidas.";
-    const destErr = !destinationCode
-        ? "Seleccione el destino en el catálogo."
-        : parseGeoPoint(destination)
-          ? null
-          : "Destino: coordenadas inválidas.";
-
     const onSubmit = useCallback(async () => {
         const trimmedRec = recipient.trim();
         const recErr = recipientFieldValidationError(trimmedRec);
@@ -271,11 +254,12 @@ export function CreateShipmentForm({
             setRecipientIssue(recErr);
             return;
         }
-        if (originErr || destErr) {
-            setBanner({
-                kind: "err",
-                text: originErr ?? destErr ?? "Revise origen y destino.",
-            });
+        if (!originCode || !destinationCode) {
+            setBanner({ kind: "err", text: "Seleccione origen y destino." });
+            return;
+        }
+        if (!parseGeoPoint(origin) || !parseGeoPoint(destination)) {
+            setBanner({ kind: "err", text: "Origen o destino con coordenadas inválidas." });
             return;
         }
         if (senderActorReady === false) {
@@ -362,8 +346,8 @@ export function CreateShipmentForm({
         coldChain,
         apiBaseUrl,
         onSuccess,
-        originErr,
-        destErr,
+        originCode,
+        destinationCode,
         senderActorReady,
         role,
         detailsForm,
@@ -377,8 +361,7 @@ export function CreateShipmentForm({
         !recipient.trim() ||
         (productOptions.length === 0 && !productsLoading && apiBaseWellFormed) ||
         (locationOptions.length === 0 && !locationsLoading && apiBaseWellFormed) ||
-        Boolean(originErr) ||
-        Boolean(destErr) ||
+        locationsLoading ||
         recipientFieldValidationError(recipient.trim()) !== null ||
         senderActorReady === false ||
         (recipientOptions.length === 0 && !recipientsLoading && apiBaseWellFormed);
@@ -428,10 +411,6 @@ export function CreateShipmentForm({
                         </option>
                     ))}
                 </select>
-                <p className="text-xs text-muted mb-0 mt-1">
-                    Solo actores con rol Recipient en el sistema. La wallet se muestra abreviada;
-                    al registrar el envío se usa la clave completa on-chain.
-                </p>
                 {recipientsLoadError ? (
                     <p className="text-sm admin-form__err mb-0 mt-1" role="alert">
                         {recipientsLoadError}
@@ -491,21 +470,6 @@ export function CreateShipmentForm({
                             {productsLoadError}
                         </p>
                     ) : null}
-                    {selectedProduct ? (
-                        <div
-                            className="text-xs text-muted mb-0 mt-2 p-2 border border-default rounded"
-                            role="status"
-                        >
-                            <p className="mb-1">{selectedProduct.description}</p>
-                            <p className="mb-0">
-                                <strong>Embalaje:</strong>{" "}
-                                {selectedProduct.packagingLabel || selectedProduct.packagingType}
-                                {" · "}
-                                <strong>Cadena de frío:</strong>{" "}
-                                {selectedProduct.requiresColdChain ? "Requerida" : "No requerida"}
-                            </p>
-                        </div>
-                    ) : null}
                 </div>
                 <div className="form-group">
                     <label htmlFor="admin-ship-cold">Cadena de frío</label>
@@ -555,14 +519,6 @@ export function CreateShipmentForm({
                             {locationsLoadError}
                         </p>
                     ) : null}
-                    {selectedOrigin ? (
-                        <LocationPreview item={selectedOrigin} coord={origin} />
-                    ) : null}
-                    {originErr ? (
-                        <p className="text-sm admin-form__err mb-0 mt-1" role="alert">
-                            {originErr}
-                        </p>
-                    ) : null}
                 </div>
                 <div className="form-group">
                     <label htmlFor="admin-ship-dest">Destino</label>
@@ -591,23 +547,11 @@ export function CreateShipmentForm({
                             </option>
                         ))}
                     </select>
-                    {selectedDestination ? (
-                        <LocationPreview item={selectedDestination} coord={destination} />
-                    ) : null}
-                    {destErr ? (
-                        <p className="text-sm admin-form__err mb-0 mt-1" role="alert">
-                            {destErr}
-                        </p>
-                    ) : null}
                 </div>
             </div>
 
             <fieldset className="admin-form__section" disabled={busy}>
                 <legend className="admin-form__section-title">Detalles del envío</legend>
-                <p className="text-xs text-muted mb-2">
-                    Información operativa (base de datos). No se almacena en la cuenta on-chain;
-                    se envía al sincronizar con la API.
-                </p>
                 <div className="form-row">
                     <div className="form-group">
                         <label htmlFor="admin-ship-weight">Peso (kg)</label>
