@@ -62,12 +62,12 @@ fn setup_shipment(
             shipment: shipment_pda,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "vaccines".to_string(),
-            origin: "13.592200,-89.827500".to_string(),
-            destination: "13.440900,-89.055700".to_string(),
-            requires_cold_chain: true,
-        })
+        .args(crate::common::create_shipment_args(
+            "vaccines",
+            "13.592200,-89.827500",
+            "13.440900,-89.055700",
+            true,
+        ))
         .send()
         .expect("create_shipment");
 

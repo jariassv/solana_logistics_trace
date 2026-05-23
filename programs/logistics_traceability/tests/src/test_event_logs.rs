@@ -97,12 +97,7 @@ fn shipment_created_event_discriminator_in_transaction_logs() {
             shipment: shipment_pda,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "p".to_string(),
-            origin: "o".to_string(),
-            destination: "d".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args("p", "o", "d"))
         .send()
         .expect("create_shipment");
 
@@ -156,12 +151,7 @@ fn checkpoint_recorded_event_discriminator_in_transaction_logs() {
             shipment: shipment_pda,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "p".to_string(),
-            origin: "o".to_string(),
-            destination: "d".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args("p", "o", "d"))
         .send()
         .expect("create_shipment");
 

@@ -10,7 +10,7 @@ use anchor_lang::AccountDeserialize;
 use logistics_traceability::{
     accounts::{CreateShipment, RegisterActor},
     constants::{ACTOR_SEED, SHIPMENT_SEED},
-    instruction::{CreateShipment as CreateShipmentIx, RegisterActor as RegisterActorIx},
+    instruction::RegisterActor as RegisterActorIx,
     state::{Actor, ActorRole, Shipment, ShipmentStatus},
     ID,
 };
@@ -64,12 +64,11 @@ fn create_shipment_increments_program_config_and_sender_actor_counters() {
             shipment: shipment_pda,
             system_program: system_program::ID,
         })
-        .args(CreateShipmentIx {
-            product: "SKU-1".to_string(),
-            origin: "San Salvador".to_string(),
-            destination: "Mexico City".to_string(),
-            requires_cold_chain: false,
-        })
+        .args(crate::common::simple_create_shipment_args(
+            "SKU-1",
+            "San Salvador",
+            "Mexico City",
+        ))
         .send()
         .expect("create_shipment");
 
