@@ -8,6 +8,8 @@ build/
 .next/
 target/
 target-ci/
+test-ledger/
+**/test-ledger/
 coverage/
 .npm-user-cache/
 frontend/.npm-cache/
