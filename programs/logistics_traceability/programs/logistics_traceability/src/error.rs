@@ -24,4 +24,10 @@ pub enum ErrorCode {
     InvalidShipmentStatusForConfirm,
     #[msg("Only sender, recipient, or carrier may report a critical incident")]
     UnauthorizedIncidentReporter,
+    #[msg("Carrier must be a registered active Carrier actor")]
+    InvalidCarrier,
+    #[msg("A carrier is already assigned to this shipment")]
+    CarrierAlreadyAssigned,
+    #[msg("Only the assigned carrier may perform this action")]
+    UnauthorizedCarrier,
 }

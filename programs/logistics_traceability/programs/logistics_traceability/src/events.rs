@@ -38,6 +38,13 @@ pub struct DeliveryConfirmed {
 }
 
 #[event]
+pub struct CarrierAssigned {
+    pub on_chain_shipment_id: u64,
+    pub carrier: Pubkey,
+    pub assigned_by: Pubkey,
+}
+
+#[event]
 pub struct CriticalIncidentReported {
     pub on_chain_shipment_id: u64,
     pub reporter: Pubkey,

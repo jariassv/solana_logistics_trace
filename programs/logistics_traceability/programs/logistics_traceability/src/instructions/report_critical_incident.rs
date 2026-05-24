@@ -38,6 +38,8 @@ fn reporter_may_report(
         return true;
     }
     reporter_actor.role == ActorRole::Carrier
+        && shipment.carrier == *reporter
+        && shipment.carrier != Pubkey::default()
 }
 
 #[allow(clippy::too_many_arguments)]

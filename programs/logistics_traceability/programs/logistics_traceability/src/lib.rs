@@ -60,6 +60,11 @@ pub mod logistics_traceability {
         )
     }
 
+    /// Sender assigns a registered Carrier to the shipment (once, while open).
+    pub fn assign_carrier(ctx: Context<AssignCarrier>) -> Result<()> {
+        process_assign_carrier(ctx)
+    }
+
     pub fn record_checkpoint(
         ctx: Context<RecordCheckpoint>,
         checkpoint_type: CheckpointType,

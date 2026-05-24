@@ -63,6 +63,8 @@ pub struct Shipment {
     pub priority: ShipmentPriority,
     #[max_len(256)]
     pub notes: String,
+    /// Assigned carrier wallet; `Pubkey::default()` until the sender assigns one.
+    pub carrier: Pubkey,
 }
 
 /// MVP checkpoint-driven transitions (same subset as backend `shipment_status`).

@@ -80,6 +80,7 @@ pub fn process_create_shipment(
     s.reference_code = reference_code;
     s.priority = priority;
     s.notes = notes;
+    s.carrier = Pubkey::default();
 
     cfg.shipments_created = new_id;
 
