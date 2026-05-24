@@ -8,11 +8,12 @@ import { AdminModal } from "@/components/admin/AdminModal";
 import { IncidentHubNavLink } from "@/components/incidents/IncidentHubNavLink";
 import { RecordCheckpointForm } from "@/components/admin/RecordCheckpointForm";
 import { ReportCriticalIncidentForm } from "@/components/admin/ReportCriticalIncidentForm";
+import { AssignCarrierForm } from "@/components/shipments/AssignCarrierForm";
 import { ShipmentDetailWorkspace } from "@/components/shipments/ShipmentDetailWorkspace";
+import { canAssignCarrierAction, canRecordCheckpointAction } from "@/lib/admin/shipmentActions";
 import { canReportCriticalIncidentAction } from "@/lib/admin/incidentActions";
 import type { IncidentItem } from "@/lib/api/incidents";
 import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
-import { canRecordCheckpointAction } from "@/lib/admin/shipmentActions";
 import { useAdminState } from "@/lib/admin/useAdminState";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
@@ -37,6 +38,7 @@ export default function AdminShipmentDetailPage() {
     );
     const [recordOpen, setRecordOpen] = useState(false);
     const [reportOpen, setReportOpen] = useState(false);
+    const [assignOpen, setAssignOpen] = useState(false);
     const [anchorIncident, setAnchorIncident] = useState<IncidentItem | null>(null);
 
     const shipmentPda = useMemo(() => {
@@ -65,6 +67,18 @@ export default function AdminShipmentDetailPage() {
         actorLoading,
     });
 
+    const assignGate = canAssignCarrierAction({
+        role,
+        hasWallet: Boolean(wallet),
+        programConfigured: Boolean(programId),
+        actorOnChain,
+        actorLoading,
+        senderWallet: detail?.sender ?? "",
+        viewerWallet: wallet,
+        carrierWallet: detail?.carrier,
+        shipmentStatus: detail?.status ?? "",
+    });
+
     const onRecordSuccess = useCallback(async () => {
         await refreshAll();
         await refreshActor();
@@ -77,6 +91,12 @@ export default function AdminShipmentDetailPage() {
         await reload();
         setReportOpen(false);
         setAnchorIncident(null);
+    }, [refreshAll, reload]);
+
+    const onAssignSuccess = useCallback(async () => {
+        await refreshAll();
+        await reload();
+        setAssignOpen(false);
     }, [refreshAll, reload]);
 
     const openReportModal = useCallback((incident: IncidentItem | null) => {
@@ -104,6 +124,18 @@ export default function AdminShipmentDetailPage() {
             >
                 Registrar evento
             </button>
+            {assignGate.enabled || role === "Sender" ? (
+                <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    title={assignGate.reason}
+                    aria-disabled={!assignGate.enabled}
+                    disabled={!assignGate.enabled}
+                    onClick={() => setAssignOpen(true)}
+                >
+                    Asignar transportista
+                </button>
+            ) : null}
             <button
                 type="button"
                 className="btn btn--ghost btn--sm"
@@ -150,12 +182,38 @@ export default function AdminShipmentDetailPage() {
                     backLink={backLink}
                     canAnchorIncidentOnChain={reportGate.enabled}
                     onAnchorIncidentOnChain={(inc) => openReportModal(inc)}
-                    programId={programId}
-                    connection={connection}
-                    senderPubkey={payer}
-                    shipmentPda={shipmentPda}
                 />
             ) : null}
+
+            <AdminModal
+                open={assignOpen}
+                title="Asignar transportista"
+                onClose={() => setAssignOpen(false)}
+                size="md"
+            >
+                {!assignGate.enabled ? (
+                    <p className="text-sm mb-0" role="status">
+                        {assignGate.reason ?? "No puede asignar transportista con su perfil actual."}
+                    </p>
+                ) : programId && payer && detail && shipmentPda ? (
+                    <AssignCarrierForm
+                        connection={connection}
+                        programId={programId}
+                        sender={payer}
+                        shipmentPda={shipmentPda}
+                        apiBaseUrl={cfg.apiBaseUrl}
+                        onSuccess={() => void onAssignSuccess()}
+                    />
+                ) : (
+                    <p className="text-sm text-muted mb-0" role="status">
+                        {!programId
+                            ? "Configure NEXT_PUBLIC_PROGRAM_ID en el despliegue."
+                            : !payer
+                              ? "Conecte la wallet para firmar la transacción."
+                              : "No se puede asignar en este momento."}
+                    </p>
+                )}
+            </AdminModal>
 
             <AdminModal
                 open={recordOpen}

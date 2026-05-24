@@ -89,10 +89,7 @@ export function AssignCarrierForm({
     }, [apiBaseUrl, connection, onSuccess, programId, selected, sender, shipmentPda]);
 
     return (
-        <section className="assign-carrier-form card card--panel" aria-labelledby="assign-carrier-title">
-            <h3 id="assign-carrier-title" className="assign-carrier-form__title">
-                Asignar transportista
-            </h3>
+        <div className="assign-carrier-form">
             <p className="text-sm text-muted mb-3">
                 Solo usted como remitente puede asignar un Carrier registrado en la red. La operación
                 queda registrada on-chain.
@@ -142,6 +139,6 @@ export function AssignCarrierForm({
                     {busy ? "Procesando…" : "Asignar on-chain"}
                 </button>
             </div>
-        </section>
+        </div>
     );
 }

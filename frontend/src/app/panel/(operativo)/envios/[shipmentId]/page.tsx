@@ -7,7 +7,9 @@ import { useParams } from "next/navigation";
 import { AdminModal } from "@/components/admin/AdminModal";
 import { IncidentHubNavLink } from "@/components/incidents/IncidentHubNavLink";
 import { ReportCriticalIncidentForm } from "@/components/admin/ReportCriticalIncidentForm";
+import { AssignCarrierForm } from "@/components/shipments/AssignCarrierForm";
 import { ShipmentDetailWorkspace } from "@/components/shipments/ShipmentDetailWorkspace";
+import { canAssignCarrierAction } from "@/lib/admin/shipmentActions";
 import { canReportCriticalIncidentAction } from "@/lib/admin/incidentActions";
 import type { IncidentItem } from "@/lib/api/incidents";
 import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
@@ -23,6 +25,7 @@ export default function PanelShipmentDetailPage() {
     const { detail, error, loading, reload } = useShipmentDetail(apiBaseUrl, shipmentId, wallet);
     const { programId, connection, payer, actorOnChain, resolveShipmentPda } = useAdminState();
     const [reportOpen, setReportOpen] = useState(false);
+    const [assignOpen, setAssignOpen] = useState(false);
     const [anchorIncident, setAnchorIncident] = useState<IncidentItem | null>(null);
 
     const shipmentPda = useMemo(() => {
@@ -40,10 +43,27 @@ export default function PanelShipmentDetailPage() {
         actorLoading,
     });
 
+    const assignGate = canAssignCarrierAction({
+        role,
+        hasWallet: Boolean(wallet),
+        programConfigured: Boolean(programId),
+        actorOnChain,
+        actorLoading,
+        senderWallet: detail?.sender ?? "",
+        viewerWallet: wallet,
+        carrierWallet: detail?.carrier,
+        shipmentStatus: detail?.status ?? "",
+    });
+
     const onReportSuccess = useCallback(async () => {
         await reload();
         setReportOpen(false);
         setAnchorIncident(null);
+    }, [reload]);
+
+    const onAssignSuccess = useCallback(async () => {
+        await reload();
+        setAssignOpen(false);
     }, [reload]);
 
     const openReportModal = useCallback((incident: IncidentItem | null) => {
@@ -60,18 +80,32 @@ export default function PanelShipmentDetailPage() {
         </p>
     );
 
-    const reportButton =
+    const headerActions =
         wallet && detail ? (
-            <button
-                type="button"
-                className="btn btn--primary btn--sm"
-                title={reportGate.reason}
-                aria-disabled={!reportGate.enabled}
-                disabled={!reportGate.enabled}
-                onClick={() => openReportModal(null)}
-            >
-                Reportar crítica
-            </button>
+            <div className="admin-detail-actions">
+                {assignGate.enabled || role === "Sender" ? (
+                    <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        title={assignGate.reason}
+                        aria-disabled={!assignGate.enabled}
+                        disabled={!assignGate.enabled}
+                        onClick={() => setAssignOpen(true)}
+                    >
+                        Asignar transportista
+                    </button>
+                ) : null}
+                <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    title={reportGate.reason}
+                    aria-disabled={!reportGate.enabled}
+                    disabled={!reportGate.enabled}
+                    onClick={() => openReportModal(null)}
+                >
+                    Reportar crítica
+                </button>
+            </div>
         ) : null;
 
     return (
@@ -103,17 +137,43 @@ export default function PanelShipmentDetailPage() {
                         wallet={wallet}
                         role={role}
                         onDetailReload={() => void reload()}
-                        headerActions={reportButton}
+                        headerActions={headerActions}
                         backLink={backLink}
                         canAnchorIncidentOnChain={reportGate.enabled}
                         onAnchorIncidentOnChain={(inc) => openReportModal(inc)}
-                        programId={programId}
-                        connection={connection}
-                        senderPubkey={payer}
-                        shipmentPda={shipmentPda}
                     />
                 )}
             </div>
+
+            <AdminModal
+                open={assignOpen}
+                title="Asignar transportista"
+                onClose={() => setAssignOpen(false)}
+                size="md"
+            >
+                {!assignGate.enabled ? (
+                    <p className="text-sm mb-0" role="status">
+                        {assignGate.reason ?? "No puede asignar transportista con su perfil actual."}
+                    </p>
+                ) : programId && payer && detail && shipmentPda ? (
+                    <AssignCarrierForm
+                        connection={connection}
+                        programId={programId}
+                        sender={payer}
+                        shipmentPda={shipmentPda}
+                        apiBaseUrl={apiBaseUrl}
+                        onSuccess={() => void onAssignSuccess()}
+                    />
+                ) : (
+                    <p className="text-sm text-muted mb-0" role="status">
+                        {!programId
+                            ? "Configure NEXT_PUBLIC_PROGRAM_ID."
+                            : !payer
+                              ? "Conecte la wallet para firmar."
+                              : "No se puede asignar en este momento."}
+                    </p>
+                )}
+            </AdminModal>
 
             <AdminModal
                 open={reportOpen}

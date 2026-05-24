@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    canAssignCarrierAction,
     canCreateShipmentAction,
     canRecordCheckpointAction,
     shipmentCardActions,
@@ -44,6 +45,45 @@ describe("shipmentCardActions", () => {
             (a) => a.id === "view_detail",
         );
         expect(view?.enabled).toBe(false);
+    });
+});
+
+describe("canAssignCarrierAction", () => {
+    it("allows sender on open shipment without carrier", () => {
+        const result = canAssignCarrierAction({
+            ...ready,
+            role: "Sender",
+            senderWallet: "wallet-sender",
+            viewerWallet: "wallet-sender",
+            carrierWallet: null,
+            shipmentStatus: "Created",
+        });
+        expect(result.enabled).toBe(true);
+    });
+
+    it("denies when carrier already assigned", () => {
+        const result = canAssignCarrierAction({
+            ...ready,
+            role: "Sender",
+            senderWallet: "wallet-sender",
+            viewerWallet: "wallet-sender",
+            carrierWallet: "carrier-1",
+            shipmentStatus: "Created",
+        });
+        expect(result.enabled).toBe(false);
+        expect(result.reason).toMatch(/ya tiene transportista/);
+    });
+
+    it("denies non-sender roles", () => {
+        const result = canAssignCarrierAction({
+            ...ready,
+            role: "Carrier",
+            senderWallet: "wallet-sender",
+            viewerWallet: "wallet-carrier",
+            carrierWallet: null,
+            shipmentStatus: "Created",
+        });
+        expect(result.enabled).toBe(false);
     });
 });
 

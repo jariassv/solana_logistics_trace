@@ -4,6 +4,7 @@
 
 import {
     canRecordCheckpoint,
+    canSenderAssignCarrier,
     canSenderRegisterShipments,
     carrierIsAssignedToShipment,
     shipmentAcceptsNewCheckpoints,
@@ -119,6 +120,62 @@ export function shipmentCardActions(params: {
             reason: recordGate.reason,
         },
     ];
+}
+
+export function canAssignCarrierAction(params: {
+    role: string | null;
+    hasWallet: boolean;
+    programConfigured: boolean;
+    actorOnChain: boolean | null;
+    actorLoading?: boolean;
+    senderWallet: string;
+    viewerWallet: string | null;
+    carrierWallet: string | null | undefined;
+    shipmentStatus: string;
+}): { enabled: boolean; reason?: string } {
+    const {
+        role,
+        hasWallet,
+        programConfigured,
+        actorOnChain,
+        actorLoading,
+        senderWallet,
+        viewerWallet,
+        carrierWallet,
+        shipmentStatus,
+    } = params;
+
+    if (actorLoading) {
+        return { enabled: false, reason: "Cargando perfil…" };
+    }
+    if (!hasWallet) {
+        return { enabled: false, reason: "Conecte la wallet." };
+    }
+    if (!programConfigured) {
+        return { enabled: false, reason: "El programa no está configurado en el despliegue." };
+    }
+    if (actorOnChain === false) {
+        return {
+            enabled: false,
+            reason: "Registre su actor Sender en esta red antes de asignar.",
+        };
+    }
+    if (!canSenderAssignCarrier(role, senderWallet, viewerWallet, carrierWallet, shipmentStatus)) {
+        if (role !== "Sender") {
+            return { enabled: false, reason: "Solo el remitente puede asignar transportista." };
+        }
+        if (carrierWallet) {
+            return { enabled: false, reason: "Este envío ya tiene transportista asignado." };
+        }
+        if (!shipmentAcceptsNewCheckpoints(shipmentStatus)) {
+            return {
+                enabled: false,
+                reason: "No se puede asignar transportista en un envío cerrado.",
+            };
+        }
+        return { enabled: false, reason: "No puede asignar transportista en este envío." };
+    }
+    return { enabled: true };
 }
 
 export function canCreateShipmentAction(params: {
