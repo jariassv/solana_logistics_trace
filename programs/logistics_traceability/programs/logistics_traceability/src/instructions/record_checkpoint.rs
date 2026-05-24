@@ -5,8 +5,8 @@ use crate::{
     error::ErrorCode,
     events::CheckpointRecorded,
     state::{
-        next_status_after_checkpoint, Actor, Checkpoint, CheckpointType, ProgramConfig, Shipment,
-        ShipmentStatus,
+        next_status_after_checkpoint, Actor, ActorRole, Checkpoint, CheckpointType, ProgramConfig,
+        Shipment, ShipmentStatus,
     },
 };
 
@@ -48,6 +48,20 @@ pub fn process_record_checkpoint(
 ) -> Result<()> {
     require!(location.len() <= 256, ErrorCode::StringTooLong);
     require!(metadata.len() <= 512, ErrorCode::MetadataTooLong);
+
+    let shipment = &ctx.accounts.shipment;
+    require!(
+        shipment.status != ShipmentStatus::Delivered
+            && shipment.status != ShipmentStatus::Cancelled,
+        ErrorCode::ShipmentAlreadyClosed
+    );
+    if ctx.accounts.actor.role == ActorRole::Carrier {
+        require!(
+            shipment.carrier == ctx.accounts.authority.key()
+                && shipment.carrier != Pubkey::default(),
+            ErrorCode::UnauthorizedCarrier
+        );
+    }
 
     let cfg = &mut ctx.accounts.program_config;
     let new_cp_id = cfg
