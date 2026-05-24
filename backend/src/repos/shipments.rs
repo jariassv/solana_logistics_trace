@@ -231,6 +231,19 @@ pub async fn id_by_on_chain_shipment_id(
     }
 }
 
+pub async fn update_status(
+    pool: &PgPool,
+    shipment_id: Uuid,
+    status: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(r#"UPDATE shipments SET status = $2 WHERE id = $1"#)
+        .bind(shipment_id)
+        .bind(status)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn sync_incident_count(
     pool: &PgPool,
     shipment_id: Uuid,

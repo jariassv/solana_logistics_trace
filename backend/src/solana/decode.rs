@@ -55,6 +55,7 @@ pub fn shipment_status_code(s: ShipmentStatusSchema) -> &'static str {
         ShipmentStatusSchema::Delivered => "Delivered",
         ShipmentStatusSchema::Returned => "Returned",
         ShipmentStatusSchema::Cancelled => "Cancelled",
+        ShipmentStatusSchema::Lost => "Lost",
     }
 }
 

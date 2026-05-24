@@ -18,6 +18,9 @@ impl IncidentProcessor {
         shipment_id: Uuid,
         detection: IncidentDetectionResult,
     ) -> Result<Option<Uuid>, sqlx::Error> {
+        if incidents::loss_incident_exists(pool, shipment_id).await? {
+            return Ok(None);
+        }
         if incidents::open_exists(pool, shipment_id, &detection.incident_type).await? {
             return Ok(None);
         }

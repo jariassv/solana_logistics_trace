@@ -95,6 +95,8 @@ pub struct ShipmentContext {
     /// Último checkpoint logístico real (excluye SensorData de sistema).
     pub last_logistics_checkpoint_at: Option<DateTime<Utc>>,
     pub thresholds: ProductThresholds,
+    /// Pérdida ya registrada (incidencia Lost/SHIPMENT_LOST o estado Lost).
+    pub has_registered_loss: bool,
 }
 
 #[derive(Debug, Clone)]

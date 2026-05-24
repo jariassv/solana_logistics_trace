@@ -78,6 +78,15 @@ pub async fn sync_incident(
         });
     }
 
+    if incidents::loss_incident_exists(pool, shipment_uuid)
+        .await
+        .map_err(|e| SolanaSyncError::Validation(e.to_string()))?
+    {
+        return Err(SolanaSyncError::Validation(
+            "shipment has registered loss; no further incidents allowed".into(),
+        ));
+    }
+
     let evidence_hash_hex: String = args
         .evidence_hash
         .iter()
@@ -123,6 +132,12 @@ pub async fn sync_incident(
     shipments::sync_incident_count(pool, shipment_uuid, incident_count_i32)
         .await
         .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
+
+    if incident_type == "Lost" {
+        shipments::update_status(pool, shipment_uuid, "Lost")
+            .await
+            .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
+    }
 
     Ok(SyncOutcome {
         created: true,

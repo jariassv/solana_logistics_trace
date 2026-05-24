@@ -2,7 +2,13 @@
 
 use crate::incident_engine::models::ShipmentContext;
 
-const TERMINAL_STATUSES: &[&str] = &["Delivered", "Cancelled", "Returned"];
+const TERMINAL_STATUSES: &[&str] = &["Delivered", "Cancelled", "Returned", "Lost"];
+
+/// Sin nuevas detecciones automáticas tras pérdida registrada.
+#[must_use]
+pub fn allows_incident_detection(ctx: &ShipmentContext) -> bool {
+    !ctx.has_registered_loss
+}
 
 /// El envío ya salió de origen (pickup registrado o estado posterior a Created).
 #[must_use]
@@ -19,14 +25,18 @@ pub fn in_transit_monitoring(ctx: &ShipmentContext) -> bool {
 /// Temperatura / cadena de frío: solo tras pickup y con límites de producto o frío.
 #[must_use]
 pub fn allows_temperature_rules(ctx: &ShipmentContext) -> bool {
-    in_transit_monitoring(ctx)
+    allows_incident_detection(ctx)
+        && in_transit_monitoring(ctx)
         && (ctx.requires_cold_chain || ctx.thresholds.has_temperature_bounds())
 }
 
 /// GPS / desviación de ruta: en movimiento (InTransit, AtHub, OutForDelivery).
 #[must_use]
 pub fn allows_gps_rules(ctx: &ShipmentContext) -> bool {
-    if !logistics_started(ctx) || TERMINAL_STATUSES.contains(&ctx.status.as_str()) {
+    if !allows_incident_detection(ctx)
+        || !logistics_started(ctx)
+        || TERMINAL_STATUSES.contains(&ctx.status.as_str())
+    {
         return false;
     }
     matches!(
@@ -38,7 +48,9 @@ pub fn allows_gps_rules(ctx: &ShipmentContext) -> bool {
 /// Retraso sin checkpoint logístico reciente.
 #[must_use]
 pub fn allows_delay_rule(ctx: &ShipmentContext) -> bool {
-    in_transit_monitoring(ctx) && ctx.last_logistics_checkpoint_at.is_some()
+    allows_incident_detection(ctx)
+        && in_transit_monitoring(ctx)
+        && ctx.last_logistics_checkpoint_at.is_some()
 }
 
 /// Sensor sin telemetría: solo si el producto exige control térmico.
@@ -50,7 +62,9 @@ pub fn allows_sensor_offline(ctx: &ShipmentContext) -> bool {
 /// Humedad: producto con límites y fase en tránsito.
 #[must_use]
 pub fn allows_humidity_rules(ctx: &ShipmentContext) -> bool {
-    in_transit_monitoring(ctx) && ctx.thresholds.has_humidity_bounds()
+    allows_incident_detection(ctx)
+        && in_transit_monitoring(ctx)
+        && ctx.thresholds.has_humidity_bounds()
 }
 
 #[cfg(test)]
@@ -80,7 +94,16 @@ mod tests {
                 humidity_pct_min: None,
                 humidity_pct_max: None,
             },
+            has_registered_loss: false,
         }
+    }
+
+    #[test]
+    fn incident_detection_blocked_after_loss() {
+        let mut c = ctx("InTransit", true);
+        c.has_registered_loss = true;
+        assert!(!allows_incident_detection(&c));
+        assert!(!allows_temperature_rules(&c));
     }
 
     #[test]

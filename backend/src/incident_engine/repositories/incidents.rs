@@ -33,6 +33,17 @@ pub async fn insert_auto(
     .await
 }
 
+pub async fn loss_incident_exists(pool: &PgPool, shipment_id: Uuid) -> Result<bool, sqlx::Error> {
+    let n: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*)::bigint FROM incidents
+           WHERE shipment_id = $1 AND incident_type IN ('Lost', 'SHIPMENT_LOST')"#,
+    )
+    .bind(shipment_id)
+    .fetch_one(pool)
+    .await?;
+    Ok(n > 0)
+}
+
 pub async fn open_exists(
     pool: &PgPool,
     shipment_id: Uuid,
@@ -89,7 +100,15 @@ pub async fn load_shipment_context(
                      AND c.checkpoint_type <> 'SensorData'
                      AND c.actor_wallet NOT LIKE 'system@%'
                      AND c.tx_hash NOT LIKE 'system:%'
-               ) AS last_logistics_checkpoint_at
+               ) AS last_logistics_checkpoint_at,
+               (
+                   s.status = 'Lost'
+                   OR EXISTS (
+                       SELECT 1 FROM incidents i
+                       WHERE i.shipment_id = s.id
+                         AND i.incident_type IN ('Lost', 'SHIPMENT_LOST')
+                   )
+               ) AS has_registered_loss
            FROM shipments s
            LEFT JOIN cat_product p ON p.code = s.product AND p.is_active = true
            WHERE s.id = $1"#,
@@ -120,6 +139,7 @@ pub async fn load_shipment_context(
             humidity_pct_min: r.try_get("humidity_pct_min")?,
             humidity_pct_max: r.try_get("humidity_pct_max")?,
         },
+        has_registered_loss: r.try_get("has_registered_loss")?,
     }))
 }
 

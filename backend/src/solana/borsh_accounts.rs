@@ -39,6 +39,7 @@ pub enum ShipmentStatusSchema {
     Delivered,
     Returned,
     Cancelled,
+    Lost,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug)]

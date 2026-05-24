@@ -88,6 +88,7 @@ mod tests {
                 humidity_pct_min: None,
                 humidity_pct_max: None,
             },
+            has_registered_loss: false,
         }
     }
 
@@ -140,6 +141,7 @@ mod tests {
             has_pickup: false,
             last_logistics_checkpoint_at: None,
             thresholds: ProductThresholds::default(),
+            has_registered_loss: false,
         };
         let telemetry = TelemetryEvent {
             shipment_id: shipment.shipment_id,
@@ -172,6 +174,7 @@ mod tests {
                 humidity_pct_min: Some(70.0),
                 humidity_pct_max: Some(95.0),
             },
+            has_registered_loss: false,
         };
         let telemetry = TelemetryEvent {
             shipment_id: shipment.shipment_id,
