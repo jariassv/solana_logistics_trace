@@ -137,6 +137,10 @@ pub async fn sync_incident(
         shipments::update_status(pool, shipment_uuid, "Lost")
             .await
             .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
+    } else {
+        let _ = shipments::reconcile_lost_status(pool, shipment_uuid)
+            .await
+            .map_err(|e| SolanaSyncError::Validation(e.to_string()))?;
     }
 
     Ok(SyncOutcome {

@@ -11,6 +11,7 @@ use crate::dto::coordinates::resolve_checkpoint_coordinates;
 use crate::dto::metadata::checkpoint_metadata_for_api;
 use crate::dto::shipment_details::ShipmentDetailsJson;
 use crate::dto::wallet_display::mask_wallet;
+use crate::incident_engine::repositories::incidents::IncidentRow;
 use crate::repos::checkpoints::CheckpointListRow;
 use crate::repos::shipments::{ShipmentDetailRow, ShipmentListRow};
 
@@ -87,7 +88,42 @@ pub struct ShipmentDetailJson {
     pub priority: String,
     pub notes: Option<String>,
     pub checkpoints: Vec<CheckpointItemJson>,
-    pub incidents: Vec<Value>,
+    pub incidents: Vec<IncidentDetailJson>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IncidentDetailJson {
+    pub id: Uuid,
+    pub shipment_id: Uuid,
+    pub incident_type: String,
+    pub severity: String,
+    pub status: String,
+    pub source: String,
+    pub description: String,
+    pub detected_at: DateTime<Utc>,
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub rule_name: Option<String>,
+    pub tx_hash: Option<String>,
+    pub evidence_json: Option<Value>,
+}
+
+#[must_use]
+pub fn incident_detail_json_from_row(r: IncidentRow) -> IncidentDetailJson {
+    IncidentDetailJson {
+        id: r.id,
+        shipment_id: r.shipment_id,
+        incident_type: r.incident_type,
+        severity: r.severity,
+        status: r.status,
+        source: r.source,
+        description: r.description,
+        detected_at: r.detected_at,
+        resolved_at: r.resolved_at,
+        rule_name: r.rule_name,
+        tx_hash: r.tx_hash,
+        evidence_json: r.evidence_json.map(|j| j.0),
+    }
 }
 
 #[must_use]
@@ -169,6 +205,7 @@ pub fn shipment_detail_json_from_row(
     product_label: Option<String>,
     open_incident_count: i32,
     actors: &HashMap<String, (String, String)>,
+    incidents: Vec<IncidentRow>,
 ) -> ShipmentDetailJson {
     let details_json: ShipmentDetailsJson = row.details.clone().into();
     ShipmentDetailJson {
@@ -203,6 +240,6 @@ pub fn shipment_detail_json_from_row(
         priority: details_json.priority,
         notes: details_json.notes,
         checkpoints,
-        incidents: vec![],
+        incidents: incidents.into_iter().map(incident_detail_json_from_row).collect(),
     }
 }

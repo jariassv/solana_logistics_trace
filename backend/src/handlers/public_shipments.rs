@@ -21,6 +21,15 @@ pub async fn get_public_shipment(
     pool: &State<PgPool>,
     shipment_id: Uuid,
 ) -> Result<Json<ShipmentDetailJson>, (Status, Json<Value>)> {
+    shipments::reconcile_lost_status(pool.inner(), shipment_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
+
     let row = shipments::select_shipment_detail_by_id(pool.inner(), shipment_id)
         .await
         .map_err(|_| {
@@ -82,11 +91,20 @@ pub async fn get_public_shipment(
         .into_iter()
         .map(|r| checkpoint_item_from_row(r, &actor_map))
         .collect();
+    let incident_rows = incidents::list_by_shipment(pool.inner(), shipment_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
     Ok(Json(shipment_detail_json_from_row(
         shipment_row,
         checkpoints_json,
         product_label,
         open_incident_count,
         &actor_map,
+        incident_rows,
     )))
 }

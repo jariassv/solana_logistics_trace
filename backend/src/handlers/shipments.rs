@@ -118,6 +118,14 @@ pub async fn get_shipment(
     q: WalletQuery<'_>,
 ) -> Result<Json<ShipmentDetailJson>, (Status, Json<Value>)> {
     let w = require_wallet_form(&q)?;
+    shipments::reconcile_lost_status(pool.inner(), shipment_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
     let row = shipments::select_shipment_detail_for_wallet(pool.inner(), shipment_id, w)
         .await
         .map_err(|_| {
@@ -176,11 +184,20 @@ pub async fn get_shipment(
         .into_iter()
         .map(|r| checkpoint_item_from_row(r, &actor_map))
         .collect();
+    let incident_rows = incidents::list_by_shipment(pool.inner(), shipment_id)
+        .await
+        .map_err(|_| {
+            (
+                Status::InternalServerError,
+                Json(json!({"error": "database error"})),
+            )
+        })?;
     Ok(Json(shipment_detail_json_from_row(
         shipment_row,
         checkpoints_json,
         product_label,
         open_incident_count,
         &actor_map,
+        incident_rows,
     )))
 }

@@ -231,6 +231,25 @@ pub async fn id_by_on_chain_shipment_id(
     }
 }
 
+/// Alinea `shipments.status` con incidencias de pérdida ya registradas.
+pub async fn reconcile_lost_status(pool: &PgPool, shipment_id: Uuid) -> Result<bool, sqlx::Error> {
+    let updated: Option<Uuid> = sqlx::query_scalar(
+        r#"UPDATE shipments SET status = 'Lost'
+           WHERE id = $1
+             AND status NOT IN ('Lost', 'Cancelled', 'Delivered')
+             AND EXISTS (
+                 SELECT 1 FROM incidents i
+                 WHERE i.shipment_id = $1
+                   AND i.incident_type IN ('Lost', 'SHIPMENT_LOST')
+             )
+           RETURNING id"#,
+    )
+    .bind(shipment_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(updated.is_some())
+}
+
 pub async fn update_status(
     pool: &PgPool,
     shipment_id: Uuid,
