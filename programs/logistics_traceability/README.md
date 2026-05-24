@@ -1,132 +1,75 @@
-# `logistics_traceability` — programa Anchor
+# Programa Anchor — `logistics_traceability`
 
-Programa on-chain del workspace `logistics_trace`: **Etapa 1** (actor → envío → checkpoint) y **Etapa 2** (cancelación por remitente, confirmación de entrega por destinatario). Este README cubre **solo** herramientas Anchor, compilación y despliegue.
+Contrato **TraceSol** en Solana (Anchor): actores, envíos, checkpoints e incidencias críticas.
+
+Documentación general: [README principal](../../README.md).
+
+---
+
+## Instrucciones principales
+
+`initialize`, `register_actor`, `create_shipment`, `record_checkpoint`, `report_critical_incident`, `cancel_shipment`, `confirm_delivery`.
+
+El [backend](../../backend/README.md) sincroniza vía `POST /api/v1/*/sync`.
+
+---
 
 ## Requisitos
 
-- **Rust** `1.89.0` (ver `rust-toolchain.toml` en esta carpeta).
-- **Anchor** `0.32.x` (`anchor --version`).
-- **Solana CLI** compatible con Agave 2.3 / tu red (`solana --version`).
-- Wallet de despliegue por defecto: `~/.config/solana/id.json` (configurable en `Anchor.toml` → `[provider]`).
+- Rust `1.89.0` (`rust-toolchain.toml`)
+- Anchor `0.32.x`
+- Solana CLI
 
-## Estructura del workspace Anchor
+---
 
-| Ruta | Contenido |
-|------|-----------|
-| `Anchor.toml` | Cluster, `programs.*`, wallet, script de tests. |
-| `programs/logistics_traceability/` | Crate del programa (`src/lib.rs`, `state/`, `instructions/`, `events.rs`). |
-| `tests/` | Tests de integración (`anchor-client`, localnet). |
-| `target/deploy/` | `logistics_traceability.so` y **keypair del programa** (`*-keypair.json`). |
-
-El **program id** efectivo debe coincidir entre:
-
-- `declare_id!(...)` en `programs/logistics_traceability/src/lib.rs`
-- `[programs.localnet]` (o `devnet` / `mainnet`) en `Anchor.toml`
-- la keypair en `target/deploy/logistics_traceability-keypair.json`
-
-Para alinear fuente y TOML con la keypair de deploy:
+## Build y deploy (localnet)
 
 ```bash
-anchor keys sync -p logistics_traceability
-anchor build
-```
-
-> **Importante:** respalda `target/deploy/logistics_traceability-keypair.json`. Si se regenera, cambia el program id en cadena y en clientes (frontend/backend); no subas la keypair a git si la política del repo la excluye.
-
-## Compilación
-
-Desde **esta carpeta** (`logistics_trace/programs/logistics_traceability`):
-
-```bash
-anchor build
-```
-
-Esto genera el `.so` en `target/deploy/` y el IDL en `target/idl/`.
-
-### `CARGO_TARGET_DIR` y `/tmp`
-
-Si tu entorno exporta `CARGO_TARGET_DIR` (p. ej. sandbox de IDE) o el `tmpfs` de `/tmp` está lleno, puede fallar rustc. En ese caso:
-
-```bash
-unset CARGO_TARGET_DIR
-# opcional:
-export TMPDIR="$HOME/.tmp"
-mkdir -p "$TMPDIR"
-anchor build
-```
-
-## Localnet: validador y despliegue
-
-**1. Levantar el validador**
-
-```bash
-solana-test-validator --reset   # opcional: ledger limpio antes de tests
-```
-
-**2. Apuntar el CLI**
-
-```bash
+solana-test-validator --reset
+cd programs/logistics_traceability
 solana config set --url localhost
-```
-
-**3. Build y deploy**
-
-```bash
-cd …/logistics_trace/programs/logistics_traceability
-unset CARGO_TARGET_DIR    # recomendado si Cursor u otra herramienta lo fija
 anchor build
 anchor deploy
 ```
 
-`anchor deploy` usa la URL de `[provider]` en `Anchor.toml` (por defecto localnet `http://127.0.0.1:8899`).
-
-## Tests (integración)
-
-Los tests del paquete `tests` hablan por RPC con el programa desplegado; hace falta **validador en marcha** y **programa desplegado** con el mismo `declare_id`.
+Program id:
 
 ```bash
-cd …/logistics_trace/programs/logistics_traceability
+solana-keygen pubkey target/deploy/logistics_traceability-keypair.json
+```
+
+Propagar a `PROGRAM_ID` y `NEXT_PUBLIC_PROGRAM_ID`. Activar en `/consola`.
+
+```bash
+anchor keys sync -p logistics_traceability   # si cambia keypair
+```
+
+---
+
+## Tests
+
+```bash
 cargo test -p tests --lib -- --test-threads=1
 ```
 
-O el script definido en `Anchor.toml`:
+Validador + programa desplegados con el mismo `declare_id`.
 
-```bash
-anchor test
-```
+---
 
-(Anchor puede levantar entorno según versión y flags; si ya tienes `solana-test-validator` manual, revisa `anchor test --help` para `--skip-local-validator` u opciones equivalentes.)
+## Estructura
 
-## Otras redes (referencia)
+- `programs/logistics_traceability/src/` — programa
+- `tests/` — integración RPC
+- `target/deploy/` — `.so` y keypair
 
-Para **devnet** (tras añadir la entrada en `Anchor.toml` y fondos en la wallet):
+---
 
-```bash
-anchor build
-anchor deploy --provider.cluster devnet
-```
+## Orden de arranque
 
-Ajusta `[programs.devnet]` y vuelve a **`anchor keys sync`** si cambias keypair o cluster de forma coordinada con el equipo.
+1. [infra](../../infra/README.md) → 2. **Anchor** → 3. [backend](../../backend/README.md) → 4. [frontend](../../frontend/README.md)
 
-## Comandos útiles
+---
 
-| Objetivo | Comando |
-|----------|---------|
-| Ver program id de la keypair de deploy | `solana-keygen pubkey target/deploy/logistics_traceability-keypair.json` |
-| Limpiar artefactos Anchor | `anchor clean` |
-| Ver IDL generado | `target/idl/logistics_traceability.json` |
+## Rama Git
 
-## Etapa 2 — Transiciones sin checkpoint adicional (PLAN §4)
-
-Las transiciones por **checkpoint** siguen en `record_checkpoint` + `next_status_after_checkpoint` (`state/shipment.rs`).
-
-Instrucciones adicionales:
-
-| Instrucción | Firmante | Condición | Efecto |
-|-------------|----------|-----------|--------|
-| `cancel_shipment` | `shipment.sender` | Estado ≠ `Delivered` ni `Cancelled` | `status = Cancelled`; evento `ShipmentCancelled`. |
-| `confirm_delivery` | `shipment.recipient` | Estado = `OutForDelivery` | `status = Delivered`, `date_delivered` = ahora; evento `DeliveryConfirmed`. |
-
-Así se cumple la alternativa del plan: entrega por checkpoint tipo `Delivered` **o** por `confirm_delivery` (no ambas en conflicto: si ya está `Delivered`, ambas rutas quedan cerradas).
-
-Para llegar a `OutForDelivery` solo con checkpoints (MVP actual): `Pickup` → `HubIn` → `HubOut` → `Transit`.
+Rama `solana/anchor` → merge a `main`.
