@@ -1,6 +1,7 @@
 "use client";
 
 import { ShipmentJourneyTimeline } from "@/components/shipments/ShipmentJourneyTimeline";
+import type { IncidentItem } from "@/lib/api/incidents";
 import type { CheckpointItem } from "@/lib/api/shipments";
 
 export type ShipmentStatusRailProps = {
@@ -10,10 +11,11 @@ export type ShipmentStatusRailProps = {
     checkpoints?: CheckpointItem[];
     createdAt?: string;
     apiBaseUrl?: string;
+    incidents?: IncidentItem[];
 };
 
 /**
- * @deprecated Use `ShipmentJourneyTimeline` directly. Mantiene compatibilidad con consulta pública.
+ * Rail del ciclo logístico en consulta pública (misma UX que detalle operativo).
  */
 export function ShipmentStatusRail({
     status,
@@ -22,6 +24,7 @@ export function ShipmentStatusRail({
     checkpoints = [],
     createdAt = new Date(0).toISOString(),
     apiBaseUrl,
+    incidents = [],
 }: ShipmentStatusRailProps) {
     return (
         <ShipmentJourneyTimeline
@@ -31,6 +34,7 @@ export function ShipmentStatusRail({
             checkpoints={checkpoints}
             createdAt={createdAt}
             apiBaseUrl={apiBaseUrl}
+            incidents={incidents}
         />
     );
 }

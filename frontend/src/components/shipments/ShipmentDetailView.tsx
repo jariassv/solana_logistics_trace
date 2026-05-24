@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 
 import { ShipmentOperationalDetails } from "@/components/shipments/ShipmentOperationalDetails";
 import { CheckpointTable } from "@/components/shipments/CheckpointTable";
-import { CheckpointTimeline } from "@/components/panel/CheckpointTimeline";
 import { ShipmentCreationTxHash } from "@/components/shipments/ShipmentCreationTxHash";
 import { ShipmentRecorridoAside } from "@/components/shipments/ShipmentRecorridoAside";
-import { statusBadgeClass } from "@/lib/shipments/display";
+import { ShipmentTimelineTrack } from "@/components/shipments/ShipmentTimelineTrack";
+import { filterCriticalIncidents } from "@/lib/incidents/criticalIncidentFlow";
+import { statusBadgeClass, statusLabel } from "@/lib/shipments/display";
 import type { ShipmentDetail } from "@/lib/api/shipments";
 
 export type ShipmentDetailViewProps = {
@@ -39,7 +40,9 @@ function SummaryGrid({
                 <div>
                     <span className="text-muted">Estado</span>
                     <p className="mb-0">
-                        <span className={statusBadgeClass(detail.status)}>{detail.status}</span>
+                        <span className={statusBadgeClass(detail.status)}>
+                            {statusLabel(detail.status)}
+                        </span>
                     </p>
                 </div>
                 <div>
@@ -119,7 +122,7 @@ function SummaryProse({ detail }: { detail: ShipmentDetail }) {
             <div className="card__hd">Resumen</div>
             <div className="card__bd text-sm space-y-2">
                 <p>
-                    <strong>Estado:</strong> {detail.status}
+                    <strong>Estado:</strong> {statusLabel(detail.status)}
                 </p>
                 <p>
                     <strong>Producto:</strong> {detail.product}
@@ -155,6 +158,7 @@ export function ShipmentDetailView({
     className,
 }: ShipmentDetailViewProps) {
     const hasBody = showCheckpointTable || showTimeline || showMap;
+    const criticalIncidents = filterCriticalIncidents(detail.incidents ?? []);
 
     return (
         <div className={["shipment-detail", className].filter(Boolean).join(" ")}>
@@ -190,7 +194,10 @@ export function ShipmentDetailView({
                                     {showCheckpointTable ? "Línea de tiempo" : "Checkpoints"}
                                 </div>
                                 <div className="card__bd">
-                                    <CheckpointTimeline checkpoints={detail.checkpoints} />
+                                    <ShipmentTimelineTrack
+                                        checkpoints={detail.checkpoints}
+                                        incidents={criticalIncidents}
+                                    />
                                 </div>
                             </div>
                         ) : null}

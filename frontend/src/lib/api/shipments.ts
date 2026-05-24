@@ -2,6 +2,8 @@
  * Cliente GET hacia `/api/v1/shipments*` y `actors/me` (Etapa 2 §8.2 — respuestas camelCase).
  */
 
+import { parseIncidentItem, type IncidentItem } from "@/lib/api/incidents";
+
 function joinBase(apiBaseUrl: string, pathSegment: string): string {
     const base = apiBaseUrl.replace(/\/+$/, "");
     const path = pathSegment.replace(/^\/+/, "");
@@ -78,7 +80,7 @@ export type ShipmentDetail = {
     priority: string;
     notes: string | null;
     checkpoints: CheckpointItem[];
-    incidents: unknown[];
+    incidents: IncidentItem[];
 };
 
 export type ActorMe = {
@@ -261,7 +263,15 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
         o.displayLabel === null || o.displayLabel === undefined ? null : String(o.displayLabel);
     const deliveredAt =
         o.deliveredAt === null || o.deliveredAt === undefined ? null : String(o.deliveredAt);
-    const incidents = Array.isArray(o.incidents) ? o.incidents : [];
+    const incidents: IncidentItem[] = [];
+    if (Array.isArray(o.incidents)) {
+        for (const raw of o.incidents) {
+            const item = parseIncidentItem(raw);
+            if (item) {
+                incidents.push(item);
+            }
+        }
+    }
     const weightKg = asNum(o.weightKg);
     const quantity = asNum(o.quantity);
     const quantityUnit =

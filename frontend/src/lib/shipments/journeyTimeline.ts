@@ -273,6 +273,9 @@ export function exceptionStatusLabel(status: string): string | null {
     if (status === "Returned") {
         return "Envío devuelto";
     }
+    if (status === "Lost") {
+        return "Pérdida registrada";
+    }
     return null;
 }
 

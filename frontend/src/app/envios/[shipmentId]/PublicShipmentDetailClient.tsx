@@ -65,6 +65,7 @@ export function PublicShipmentDetailClient() {
                                             checkpoints={detail.checkpoints}
                                             createdAt={detail.createdAt}
                                             apiBaseUrl={apiBaseUrl}
+                                            incidents={detail.incidents}
                                         />
                                     </div>
                                 </div>
