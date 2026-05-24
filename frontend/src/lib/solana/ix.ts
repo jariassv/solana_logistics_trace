@@ -8,6 +8,7 @@ export const IX_INITIALIZE = Buffer.from("afaf6d1f0d989bed", "hex");
 export const IX_REGISTER_ACTOR = Buffer.from("7119c49c5c4f0f97", "hex");
 export const IX_CREATE_SHIPMENT = Buffer.from("434011721e8ff9f7", "hex");
 export const IX_RECORD_CHECKPOINT = Buffer.from("f79c995c349aa7db", "hex");
+export const IX_ASSIGN_CARRIER = Buffer.from("cf12f042fb328b82", "hex");
 export const IX_REPORT_CRITICAL_INCIDENT = Buffer.from("4b90610ef4568f97", "hex");
 
 /** discriminador cuenta Anchor `ProgramConfig`. */
@@ -175,6 +176,11 @@ export enum OnChainIncidentSeverityCode {
 /** Solo discriminador para `initialize` (sin args). */
 export function encodeInitializeData(): Buffer {
     return Buffer.from(IX_INITIALIZE);
+}
+
+/** Cuerpo de instrucción `assign_carrier` (sin argumentos). */
+export function encodeAssignCarrierData(): Buffer {
+    return Buffer.from(IX_ASSIGN_CARRIER);
 }
 
 /** Cuerpo de instrucción `report_critical_incident`. */

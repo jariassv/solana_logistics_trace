@@ -5,6 +5,8 @@
 import {
     canRecordCheckpoint,
     canSenderRegisterShipments,
+    carrierIsAssignedToShipment,
+    shipmentAcceptsNewCheckpoints,
 } from "@/lib/panel/capabilities";
 import { statusBadgeClass } from "@/lib/shipments/display";
 
@@ -25,8 +27,20 @@ export function canRecordCheckpointAction(params: {
     programConfigured: boolean;
     actorOnChain: boolean | null;
     actorLoading?: boolean;
+    shipmentStatus?: string;
+    carrierWallet?: string | null;
+    viewerWallet?: string | null;
 }): { enabled: boolean; reason?: string } {
-    const { role, hasWallet, programConfigured, actorOnChain, actorLoading } = params;
+    const {
+        role,
+        hasWallet,
+        programConfigured,
+        actorOnChain,
+        actorLoading,
+        shipmentStatus,
+        carrierWallet,
+        viewerWallet,
+    } = params;
 
     if (actorLoading) {
         return { enabled: false, reason: "Cargando perfil…" };
@@ -60,6 +74,23 @@ export function canRecordCheckpointAction(params: {
         return {
             enabled: false,
             reason: "No se pudo verificar el actor en cadena. Compruebe la red RPC y recargue la página.",
+        };
+    }
+    if (shipmentStatus && !shipmentAcceptsNewCheckpoints(shipmentStatus)) {
+        return {
+            enabled: false,
+            reason: "El envío ya está entregado o cerrado; no se pueden registrar nuevos eventos.",
+        };
+    }
+    if (
+        role === "Carrier" &&
+        carrierWallet !== undefined &&
+        viewerWallet !== undefined &&
+        !carrierIsAssignedToShipment(role, carrierWallet, viewerWallet)
+    ) {
+        return {
+            enabled: false,
+            reason: "Solo puede registrar eventos en envíos asignados a usted como transportista.",
         };
     }
     return { enabled: true };

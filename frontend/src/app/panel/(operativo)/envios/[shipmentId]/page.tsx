@@ -107,6 +107,10 @@ export default function PanelShipmentDetailPage() {
                         backLink={backLink}
                         canAnchorIncidentOnChain={reportGate.enabled}
                         onAnchorIncidentOnChain={(inc) => openReportModal(inc)}
+                        programId={programId}
+                        connection={connection}
+                        senderPubkey={payer}
+                        shipmentPda={shipmentPda}
                     />
                 )}
             </div>

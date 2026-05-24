@@ -74,9 +74,41 @@ export function recordCheckpointRoleHint(role: string | null): string {
     }
 }
 
-/** Carrier, Hub e Inspector ven el inventario operativo completo en el API (§8.2). */
+/** Hub e Inspector ven el inventario operativo completo en el API (§8.2). */
 export function seesOperationalShipmentInventory(role: string | null): boolean {
-    return role === "Carrier" || role === "Hub" || role === "Inspector";
+    return role === "Hub" || role === "Inspector";
+}
+
+/** Carrier solo opera envíos con transportista asignado (on-chain + API). */
+export function carrierIsAssignedToShipment(
+    role: string | null,
+    carrierWallet: string | null | undefined,
+    viewerWallet: string | null,
+): boolean {
+    if (role !== "Carrier" || !viewerWallet || !carrierWallet) {
+        return false;
+    }
+    return carrierWallet === viewerWallet;
+}
+
+export function shipmentAcceptsNewCheckpoints(status: string): boolean {
+    return status !== "Delivered" && status !== "Cancelled" && status !== "Returned";
+}
+
+/** Sender asigna transportista mientras el envío está abierto y sin carrier. */
+export function canSenderAssignCarrier(
+    role: string | null,
+    senderWallet: string,
+    viewerWallet: string | null,
+    carrierWallet: string | null | undefined,
+    status: string,
+): boolean {
+    return (
+        role === "Sender" &&
+        viewerWallet === senderWallet &&
+        !carrierWallet &&
+        shipmentAcceptsNewCheckpoints(status)
+    );
 }
 
 /** Enlaces de envíos requieren wallet conectada (query `wallet` obligatoria en API). */

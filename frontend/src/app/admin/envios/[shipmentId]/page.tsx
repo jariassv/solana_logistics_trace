@@ -52,6 +52,9 @@ export default function AdminShipmentDetailPage() {
         programConfigured: Boolean(programId),
         actorOnChain,
         actorLoading,
+        shipmentStatus: detail?.status,
+        carrierWallet: detail?.carrier,
+        viewerWallet: wallet,
     });
 
     const reportGate = canReportCriticalIncidentAction({
@@ -147,6 +150,10 @@ export default function AdminShipmentDetailPage() {
                     backLink={backLink}
                     canAnchorIncidentOnChain={reportGate.enabled}
                     onAnchorIncidentOnChain={(inc) => openReportModal(inc)}
+                    programId={programId}
+                    connection={connection}
+                    senderPubkey={payer}
+                    shipmentPda={shipmentPda}
                 />
             ) : null}
 

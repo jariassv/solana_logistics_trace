@@ -4,6 +4,7 @@ import {
     canRecordCheckpoint,
     canReportCriticalIncident,
     canResolveIncident,
+    canSenderAssignCarrier,
     checkpointTypeCodesForRole,
     canSenderRegisterShipments,
     canUseChainOperationsNav,
@@ -61,12 +62,18 @@ describe("panel capabilities", () => {
         expect(checkpointTypeCodesForRole("Sender")).toBeNull();
     });
 
-    it("grants operational inventory visibility to Carrier, Hub, and Inspector", () => {
-        expect(seesOperationalShipmentInventory("Carrier")).toBe(true);
+    it("grants operational inventory visibility to Hub and Inspector only", () => {
+        expect(seesOperationalShipmentInventory("Carrier")).toBe(false);
         expect(seesOperationalShipmentInventory("Hub")).toBe(true);
         expect(seesOperationalShipmentInventory("Inspector")).toBe(true);
         expect(seesOperationalShipmentInventory("Sender")).toBe(false);
         expect(seesOperationalShipmentInventory("Recipient")).toBe(false);
+    });
+
+    it("sender assign carrier gate", () => {
+        expect(canSenderAssignCarrier("Sender", "S1", "S1", null, "Created")).toBe(true);
+        expect(canSenderAssignCarrier("Sender", "S1", "S2", null, "Created")).toBe(false);
+        expect(canSenderAssignCarrier("Sender", "S1", "S1", "C1", "Created")).toBe(false);
     });
 
     it("formats role display name", () => {

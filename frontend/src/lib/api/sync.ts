@@ -77,6 +77,20 @@ export async function postShipmentsSync(
     return { ok: res.ok, status: res.status, json };
 }
 
+export async function postAssignCarrierSync(
+    apiBaseUrl: string,
+    body: SyncRequestBodySnake,
+): Promise<SyncCallResult> {
+    const url = joinBase(apiBaseUrl, "shipments/assign-carrier/sync");
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+    });
+    const json = await parseJsonBody(res);
+    return { ok: res.ok, status: res.status, json };
+}
+
 export async function postCheckpointsSync(
     apiBaseUrl: string,
     body: SyncRequestBodySnake,

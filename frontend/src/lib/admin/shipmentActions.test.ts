@@ -14,7 +14,7 @@ const ready = {
 };
 
 describe("shipmentCardActions", () => {
-    it("enables record_event for Carrier", () => {
+    it("enables record_event for Carrier at list level", () => {
         const record = shipmentCardActions({ ...ready, role: "Carrier" }).find(
             (a) => a.id === "record_event",
         );
@@ -62,6 +62,27 @@ describe("canRecordCheckpointAction", () => {
                 actorLoading: true,
             }).enabled,
         ).toBe(false);
+    });
+
+    it("disables Carrier when not assigned to shipment", () => {
+        const result = canRecordCheckpointAction({
+            ...ready,
+            role: "Carrier",
+            carrierWallet: "OtherWallet",
+            viewerWallet: "MyWallet",
+            shipmentStatus: "Created",
+        });
+        expect(result.enabled).toBe(false);
+    });
+
+    it("disables checkpoints when shipment is delivered", () => {
+        const result = canRecordCheckpointAction({
+            ...ready,
+            role: "Hub",
+            shipmentStatus: "Delivered",
+        });
+        expect(result.enabled).toBe(false);
+        expect(result.reason).toMatch(/entregado/);
     });
 });
 

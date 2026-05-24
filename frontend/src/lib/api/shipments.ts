@@ -59,8 +59,10 @@ export type ShipmentDetail = {
     destination: string;
     sender: string;
     recipient: string;
+    carrier: string | null;
     senderParticipant: WalletParticipant;
     recipientParticipant: WalletParticipant;
+    carrierParticipant: WalletParticipant | null;
     status: string;
     requiresColdChain: boolean;
     createdAt: string;
@@ -235,8 +237,16 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
         return null;
     }
     const openIncidentCount = asNum(o.openIncidentCount) ?? incidentCount;
+    const carrier =
+        o.carrier === null || o.carrier === undefined ? null : asString(o.carrier) || null;
     const senderParticipant = parseWalletParticipant(o.senderParticipant, sender);
     const recipientParticipant = parseWalletParticipant(o.recipientParticipant, recipient);
+    const carrierParticipant =
+        o.carrierParticipant === null || o.carrierParticipant === undefined
+            ? carrier
+                ? parseWalletParticipant(null, carrier)
+                : null
+            : parseWalletParticipant(o.carrierParticipant, carrier ?? "");
     const checkpointsRaw = o.checkpoints;
     const checkpoints: CheckpointItem[] = [];
     if (Array.isArray(checkpointsRaw)) {
@@ -280,8 +290,10 @@ export function parseShipmentDetail(raw: unknown): ShipmentDetail | null {
         destination,
         sender,
         recipient,
+        carrier,
         senderParticipant,
         recipientParticipant,
+        carrierParticipant,
         status,
         requiresColdChain,
         createdAt,

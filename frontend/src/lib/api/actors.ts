@@ -2,6 +2,13 @@
  * Cliente GET hacia `/api/v1/actors*` (destinatarios para crear envíos).
  */
 
+export type CarrierOption = {
+    wallet: string;
+    name: string;
+    walletMasked: string;
+    displayLabel: string;
+};
+
 export type RecipientOption = {
     wallet: string;
     name: string;
@@ -52,6 +59,41 @@ function parseRecipientOption(raw: unknown): RecipientOption | null {
         return null;
     }
     return { wallet, name, walletMasked, displayLabel };
+}
+
+async function fetchActorOptions(
+    apiBaseUrl: string,
+    path: string,
+    signal?: AbortSignal,
+): Promise<ActorsGetResult<CarrierOption[]>> {
+    const url = joinBase(apiBaseUrl, path);
+    const res = await fetch(url, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal,
+    });
+    const body = await parseJson(res);
+    if (!res.ok) {
+        return { ok: false, status: res.status, body };
+    }
+    if (!Array.isArray(body)) {
+        return { ok: false, status: res.status, body };
+    }
+    const out: CarrierOption[] = [];
+    for (const row of body) {
+        const p = parseRecipientOption(row);
+        if (p) {
+            out.push(p);
+        }
+    }
+    return { ok: true, status: res.status, data: out };
+}
+
+export async function getCarrierActors(
+    apiBaseUrl: string,
+    signal?: AbortSignal,
+): Promise<ActorsGetResult<CarrierOption[]>> {
+    return fetchActorOptions(apiBaseUrl, "actors/carriers", signal);
 }
 
 export async function getRecipientActors(

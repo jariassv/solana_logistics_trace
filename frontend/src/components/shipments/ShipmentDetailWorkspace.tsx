@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { IncidentHubNavLink } from "@/components/incidents/IncidentHubNavLink";
 import { CheckpointTable } from "@/components/shipments/CheckpointTable";
+import { AssignCarrierForm } from "@/components/shipments/AssignCarrierForm";
 import { ShipmentDetailHero } from "@/components/shipments/ShipmentDetailHero";
 import { ShipmentIncidentCard } from "@/components/shipments/ShipmentIncidentCard";
 import { ShipmentMonitoringGlance } from "@/components/shipments/ShipmentMonitoringGlance";
@@ -14,7 +15,8 @@ import { useShipmentIncidents } from "@/lib/api/useShipmentIncidents";
 import { useShipmentTelemetry } from "@/lib/api/useShipmentTelemetry";
 import type { IncidentItem } from "@/lib/api/incidents";
 import type { ShipmentDetail } from "@/lib/api/shipments";
-import { canResolveIncident } from "@/lib/panel/capabilities";
+import { canResolveIncident, canSenderAssignCarrier } from "@/lib/panel/capabilities";
+import type { Connection, PublicKey } from "@solana/web3.js";
 import { buildMonitoringGlance } from "@/lib/telemetry/monitoringGlance";
 
 type DetailTab = "timeline" | "incidents";
@@ -30,6 +32,10 @@ export type ShipmentDetailWorkspaceProps = {
     backLink?: ReactNode;
     canAnchorIncidentOnChain?: boolean;
     onAnchorIncidentOnChain?: (incident: IncidentItem) => void;
+    programId?: PublicKey | null;
+    connection?: Connection | null;
+    senderPubkey?: PublicKey | null;
+    shipmentPda?: PublicKey | null;
 };
 
 export function ShipmentDetailWorkspace({
@@ -43,6 +49,10 @@ export function ShipmentDetailWorkspace({
     backLink,
     canAnchorIncidentOnChain = false,
     onAnchorIncidentOnChain,
+    programId = null,
+    connection = null,
+    senderPubkey = null,
+    shipmentPda = null,
 }: ShipmentDetailWorkspaceProps) {
     const [tab, setTab] = useState<DetailTab>("timeline");
     const [showTable, setShowTable] = useState(false);
@@ -72,6 +82,19 @@ export function ShipmentDetailWorkspace({
 
     const openIncidents = items.filter((i) => i.status === "Open");
 
+    const showAssignCarrier =
+        programId &&
+        connection &&
+        senderPubkey &&
+        shipmentPda &&
+        canSenderAssignCarrier(
+            role,
+            detail.sender,
+            wallet,
+            detail.carrier,
+            detail.status,
+        );
+
     return (
         <div className="shipment-detail-pro">
             <ShipmentDetailHero
@@ -83,6 +106,16 @@ export function ShipmentDetailWorkspace({
             />
 
             <div className="shipment-detail-pro__body">
+                {showAssignCarrier && (
+                    <AssignCarrierForm
+                        apiBaseUrl={apiBaseUrl}
+                        connection={connection}
+                        programId={programId}
+                        sender={senderPubkey}
+                        shipmentPda={shipmentPda}
+                        onSuccess={onDetailReload}
+                    />
+                )}
                 <section className="shipment-detail-pro__main">
                     <nav className="shipment-detail-pro__tabs" aria-label="Secciones del detalle">
                         <button

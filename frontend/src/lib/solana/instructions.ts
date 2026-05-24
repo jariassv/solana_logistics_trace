@@ -3,6 +3,7 @@ import { SystemProgram, TransactionInstruction } from "@solana/web3.js";
 
 import type { ActorRoleCode, CheckpointTypeCode } from "./ix";
 import {
+    encodeAssignCarrierData,
     encodeCreateShipmentData,
     encodeInitializeData,
     encodeRecordCheckpointData,
@@ -48,6 +49,13 @@ export type BuildReportCriticalIncidentParams = {
     severity: OnChainIncidentSeverityCode;
     evidenceHash: Uint8Array;
     description: string;
+};
+
+export type BuildAssignCarrierParams = {
+    programId: PublicKey;
+    sender: PublicKey;
+    shipment: PublicKey;
+    carrier: PublicKey;
 };
 
 export type BuildRecordCheckpointParams = {
@@ -129,6 +137,21 @@ export function createCreateShipmentIx(p: BuildCreateShipmentParams): Transactio
             p.requiresColdChain,
             p.extras,
         ),
+    });
+}
+
+export function createAssignCarrierIx(p: BuildAssignCarrierParams): TransactionInstruction {
+    const [carrierActor] = actorPda(p.programId, p.carrier);
+    const keys: AccountMeta[] = [
+        { pubkey: p.sender, isSigner: true, isWritable: true },
+        { pubkey: p.shipment, isSigner: false, isWritable: true },
+        { pubkey: p.carrier, isSigner: false, isWritable: false },
+        { pubkey: carrierActor, isSigner: false, isWritable: false },
+    ];
+    return new TransactionInstruction({
+        programId: p.programId,
+        keys,
+        data: encodeAssignCarrierData(),
     });
 }
 
