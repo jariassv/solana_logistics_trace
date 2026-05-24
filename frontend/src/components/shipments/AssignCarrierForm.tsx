@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { getCarrierActors, type CarrierOption } from "@/lib/api/actors";
 import { postAssignCarrierSync } from "@/lib/api/sync";
 import { postSyncWithRetry } from "@/lib/api/syncWithRetry";
