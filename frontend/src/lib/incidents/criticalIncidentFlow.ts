@@ -2,7 +2,16 @@ import type { IncidentItem } from "@/lib/api/incidents";
 import type { CheckpointItem } from "@/lib/api/shipments";
 import { canAnchorAutoIncident, mapAutoIncidentToOnChainType } from "@/lib/incidents/anchorOnChain";
 import { CriticalIncidentTypeCode } from "@/lib/solana/ix";
-import { resolveNowStepId } from "@/lib/shipments/journeyTimeline";
+import { resolveOperationalJourneyStepId } from "@/lib/shipments/journeyTimeline";
+
+/** Solo incidencias con severidad Critical aparecen en trazabilidad. */
+export function isCriticalIncident(incident: IncidentItem): boolean {
+    return incident.severity === "Critical";
+}
+
+export function filterCriticalIncidents(incidents: readonly IncidentItem[]): IncidentItem[] {
+    return incidents.filter(isCriticalIncident);
+}
 
 const LOSS_TYPE_CODES = new Set(["Lost", "SHIPMENT_LOST"]);
 
@@ -46,12 +55,12 @@ export function isLossIncident(incident: IncidentItem): boolean {
 /** Etapa del rail a resaltar en rojo cuando hay pérdida abierta. */
 export function resolveLossJourneyStepId(
     incidents: readonly IncidentItem[],
+    status: string,
     checkpoints: readonly CheckpointItem[],
-    createdAt: string,
 ): string | null {
     const hasOpenLoss = incidents.some((i) => i.status === "Open" && isLossIncident(i));
     if (!hasOpenLoss) {
         return null;
     }
-    return resolveNowStepId(checkpoints, createdAt);
+    return resolveOperationalJourneyStepId(status, checkpoints);
 }

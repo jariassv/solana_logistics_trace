@@ -14,7 +14,10 @@ import { useShipmentIncidents } from "@/lib/api/useShipmentIncidents";
 import { useShipmentTelemetry } from "@/lib/api/useShipmentTelemetry";
 import type { IncidentItem } from "@/lib/api/incidents";
 import type { ShipmentDetail } from "@/lib/api/shipments";
-import { pickIncidentForAutoAnchorModal } from "@/lib/incidents/criticalIncidentFlow";
+import {
+    filterCriticalIncidents,
+    pickIncidentForAutoAnchorModal,
+} from "@/lib/incidents/criticalIncidentFlow";
 import { canResolveIncident } from "@/lib/panel/capabilities";
 import { buildMonitoringGlance } from "@/lib/telemetry/monitoringGlance";
 
@@ -90,7 +93,8 @@ export function ShipmentDetailWorkspace({
         onAnchorIncidentOnChain(pick);
     }, [items, loading, canAnchorIncidentOnChain, onAnchorIncidentOnChain]);
 
-    const traceabilityCount = detail.checkpoints.length + items.length;
+    const criticalIncidents = useMemo(() => filterCriticalIncidents(items), [items]);
+    const traceabilityCount = detail.checkpoints.length + criticalIncidents.length;
 
     return (
         <div className="shipment-detail-pro">
@@ -137,7 +141,7 @@ export function ShipmentDetailWorkspace({
                             <>
                                 <ShipmentTimelineTrack
                                     checkpoints={detail.checkpoints}
-                                    incidents={items}
+                                    incidents={criticalIncidents}
                                 />
                                 {showCheckpointTable ? (
                                     <div className="shipment-detail-pro__table-toggle">

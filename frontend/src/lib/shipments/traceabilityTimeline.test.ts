@@ -23,7 +23,7 @@ const checkpoint: CheckpointItem = {
     txHash: null,
 };
 
-const incident: IncidentItem = {
+const criticalIncident: IncidentItem = {
     id: "inc-1",
     shipmentId: "ship-1",
     incidentType: "Lost",
@@ -39,8 +39,8 @@ const incident: IncidentItem = {
 };
 
 describe("buildTraceabilityTimeline", () => {
-    it("merges checkpoints and incidents chronologically", () => {
-        const entries = buildTraceabilityTimeline([checkpoint], [incident]);
+    it("merges checkpoints and critical incidents chronologically", () => {
+        const entries = buildTraceabilityTimeline([checkpoint], [criticalIncident]);
         expect(entries).toHaveLength(2);
         expect(entries[0]?.kind).toBe("checkpoint");
         expect(entries[1]?.kind).toBe("incident");
@@ -49,8 +49,15 @@ describe("buildTraceabilityTimeline", () => {
         }
     });
 
+    it("excludes non-critical incidents from traceability", () => {
+        const high = { ...criticalIncident, id: "inc-2", severity: "High" };
+        const entries = buildTraceabilityTimeline([checkpoint], [criticalIncident, high]);
+        expect(entries).toHaveLength(2);
+        expect(entries.filter((e) => e.kind === "incident")).toHaveLength(1);
+    });
+
     it("orders incident before checkpoint when detected earlier", () => {
-        const earlyIncident = { ...incident, detectedAt: "2026-01-01T09:00:00Z" };
+        const earlyIncident = { ...criticalIncident, detectedAt: "2026-01-01T09:00:00Z" };
         const entries = buildTraceabilityTimeline([checkpoint], [earlyIncident]);
         expect(entries[0]?.kind).toBe("incident");
         expect(entries[1]?.kind).toBe("checkpoint");

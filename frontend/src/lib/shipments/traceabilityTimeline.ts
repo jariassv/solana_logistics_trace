@@ -1,6 +1,9 @@
 import type { IncidentItem } from "@/lib/api/incidents";
 import type { CheckpointItem } from "@/lib/api/shipments";
-import { isLossIncident } from "@/lib/incidents/criticalIncidentFlow";
+import {
+    filterCriticalIncidents,
+    isLossIncident,
+} from "@/lib/incidents/criticalIncidentFlow";
 import { sortCheckpointsByOccurredAt } from "@/lib/panel/timelineSort";
 
 export type TraceabilityCheckpointEntry = {
@@ -24,6 +27,7 @@ export function buildTraceabilityTimeline(
     incidents: readonly IncidentItem[],
 ): TraceabilityEntry[] {
     const orderedCp = sortCheckpointsByOccurredAt([...checkpoints]);
+    const criticalIncidents = filterCriticalIncidents(incidents);
     const entries: TraceabilityEntry[] = [
         ...orderedCp.map(
             (checkpoint): TraceabilityCheckpointEntry => ({
@@ -32,7 +36,7 @@ export function buildTraceabilityTimeline(
                 checkpoint,
             }),
         ),
-        ...incidents.map(
+        ...criticalIncidents.map(
             (incident): TraceabilityIncidentEntry => ({
                 kind: "incident",
                 occurredAt: incident.detectedAt,

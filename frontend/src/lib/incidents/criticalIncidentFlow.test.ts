@@ -4,6 +4,8 @@ import type { IncidentItem } from "@/lib/api/incidents";
 import type { CheckpointItem } from "@/lib/api/shipments";
 
 import {
+    filterCriticalIncidents,
+    isCriticalIncident,
     isLossIncident,
     pickIncidentForAutoAnchorModal,
     resolveLossJourneyStepId,
@@ -54,13 +56,29 @@ describe("criticalIncidentFlow", () => {
         expect(pickIncidentForAutoAnchorModal([baseIncident], prompted)).toBeNull();
     });
 
+    it("filters critical incidents for traceability", () => {
+        expect(isCriticalIncident(baseIncident)).toBe(true);
+        expect(filterCriticalIncidents([baseIncident, { ...baseIncident, id: "2", severity: "High" }])).toHaveLength(
+            1,
+        );
+    });
+
     it("detects loss from motor and on-chain types", () => {
         expect(isLossIncident({ ...baseIncident, incidentType: "SHIPMENT_LOST" })).toBe(true);
         expect(isLossIncident({ ...baseIncident, incidentType: "Lost" })).toBe(true);
         expect(isLossIncident(baseIncident)).toBe(false);
     });
 
-    it("highlights current journey step when open loss exists", () => {
+    it("highlights transit when shipment is InTransit with only pickup checkpoint", () => {
+        const stepId = resolveLossJourneyStepId(
+            [{ ...baseIncident, incidentType: "Lost", status: "Open" }],
+            "InTransit",
+            [pickupCp],
+        );
+        expect(stepId).toBe("transit");
+    });
+
+    it("highlights transit when latest checkpoint is transit", () => {
         const transitCp: CheckpointItem = {
             ...pickupCp,
             checkpointId: "2",
@@ -69,8 +87,8 @@ describe("criticalIncidentFlow", () => {
         };
         const stepId = resolveLossJourneyStepId(
             [{ ...baseIncident, incidentType: "Lost", status: "Open" }],
+            "InTransit",
             [pickupCp, transitCp],
-            "2026-01-01T08:00:00Z",
         );
         expect(stepId).toBe("transit");
     });
@@ -79,8 +97,8 @@ describe("criticalIncidentFlow", () => {
         expect(
             resolveLossJourneyStepId(
                 [{ ...baseIncident, incidentType: "Lost", status: "Resolved" }],
+                "InTransit",
                 [pickupCp],
-                "2026-01-01T08:00:00Z",
             ),
         ).toBeNull();
     });

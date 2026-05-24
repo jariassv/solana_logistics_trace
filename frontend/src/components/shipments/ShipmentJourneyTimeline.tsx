@@ -43,7 +43,7 @@ export function ShipmentJourneyTimeline({
         .map((c) => c.type);
     const steps = resolveJourneyStepStates(status, logisticsTypes);
     const nowStepId = resolveNowStepId(checkpoints, createdAt);
-    const lossStepId = resolveLossJourneyStepId(incidents, checkpoints, createdAt);
+    const lossStepId = resolveLossJourneyStepId(incidents, status, checkpoints);
     const exception = exceptionStatusLabel(status);
 
     const originInsight = buildEndpointInsight(

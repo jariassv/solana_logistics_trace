@@ -3325,23 +3325,23 @@ table.data-table {
 }
 
 .shipment-timeline__item--incident {
-  --timeline-incident-accent: var(--color-warn, #c47a12);
+  --timeline-incident-accent: var(--color-warning);
 }
 
 .shipment-timeline__item--incident-lost {
-  --timeline-incident-accent: var(--color-danger, #b42318);
+  --timeline-incident-accent: var(--color-danger);
 }
 
 .shipment-timeline__icon--incident {
-  background: color-mix(in srgb, var(--timeline-incident-accent) 14%, #fff);
-  border: 2px solid var(--timeline-incident-accent);
+  background: color-mix(in srgb, var(--timeline-incident-accent) 12%, var(--color-bg-card));
+  border: 2px solid color-mix(in srgb, var(--timeline-incident-accent) 45%, var(--color-border));
   color: var(--timeline-incident-accent);
   font-weight: 700;
   font-size: 0.85rem;
 }
 
 .shipment-timeline__icon--incident-lost {
-  background: color-mix(in srgb, var(--timeline-incident-accent) 18%, #fff);
+  background: color-mix(in srgb, var(--timeline-incident-accent) 14%, var(--color-bg-card));
 }
 
 .shipment-timeline__type--incident {
@@ -4016,19 +4016,21 @@ table.data-table {
 }
 
 .shipment-journey__step.is-loss .shipment-journey__icon-wrap {
-  background: var(--color-danger, #b42318);
-  border-color: #8f1a12;
+  background: color-mix(in srgb, var(--color-danger) 82%, var(--color-bg-card));
+  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-primary-dark));
   color: #fff;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger, #b42318) 22%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-danger) 16%, transparent),
+    0 2px 8px color-mix(in srgb, var(--color-danger) 20%, transparent);
 }
 
 .shipment-journey__step.is-loss .shipment-journey__label {
-  color: var(--color-danger, #b42318);
+  color: color-mix(in srgb, var(--color-danger) 88%, var(--color-text));
   font-weight: 650;
 }
 
 .shipment-journey__step.is-loss.is-current .shipment-journey__here {
-  color: var(--color-danger, #b42318);
+  color: var(--color-danger);
 }
 
 .shipment-journey__exception {

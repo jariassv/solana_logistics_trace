@@ -63,6 +63,29 @@ export function parseCoordEndpoint(raw: string): CoordEndpoint {
     return { raw: trimmed, label: trimmed, lat: null, lng: null };
 }
 
+/** Id de etapa del rail según el estado operativo del envío. */
+export function statusToJourneyStepId(status: string): string {
+    const idx = statusToStepIndex(status);
+    if (idx < 0) {
+        return "created";
+    }
+    return JOURNEY_EVENT_STEPS[idx]?.id ?? "created";
+}
+
+/**
+ * Etapa actual: prioriza el estado del envío (p. ej. InTransit → tránsito)
+ * y usa el último checkpoint solo cuando el estado no define una etapa logística.
+ */
+export function resolveOperationalJourneyStepId(
+    status: string,
+    checkpoints: readonly CheckpointItem[],
+): string {
+    if (status !== "Created" && status !== "Cancelled" && status !== "Returned") {
+        return statusToJourneyStepId(status);
+    }
+    return resolveNowStepId(checkpoints, "");
+}
+
 function statusToStepIndex(status: string): number {
     switch (status) {
         case "Created":

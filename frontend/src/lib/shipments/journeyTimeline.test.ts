@@ -8,6 +8,8 @@ import {
     parseCoordEndpoint,
     resolveJourneyStepStates,
     resolveNowStepId,
+    resolveOperationalJourneyStepId,
+    statusToJourneyStepId,
 } from "./journeyTimeline";
 
 describe("parseCoordEndpoint", () => {
@@ -54,6 +56,45 @@ describe("resolveJourneyStepStates", () => {
         const steps = resolveJourneyStepStates("AtHub", ["Pickup", "Transit"]);
         const hub = steps.find((s) => s.step.id === "hub");
         expect(hub?.state).toBe("current");
+    });
+});
+
+describe("statusToJourneyStepId", () => {
+    it("maps InTransit to transit step", () => {
+        expect(statusToJourneyStepId("InTransit")).toBe("transit");
+    });
+
+    it("maps AtHub to hub step", () => {
+        expect(statusToJourneyStepId("AtHub")).toBe("hub");
+    });
+});
+
+describe("resolveOperationalJourneyStepId", () => {
+    const pickupCp: CheckpointItem = {
+        checkpointId: "1",
+        onChainCheckpointId: "1",
+        type: "Pickup",
+        occurredAt: "2026-01-01T10:00:00Z",
+        location: null,
+        actor: "a",
+        actorWalletMasked: "x",
+        actorDisplayName: "A",
+        actorRole: null,
+        temperatureCenti: null,
+        humidity: null,
+        latitude: null,
+        longitude: null,
+        metadata: {},
+        txHash: "t1",
+    };
+
+    it("uses shipment status over latest checkpoint when in transit", () => {
+        expect(resolveOperationalJourneyStepId("InTransit", [pickupCp])).toBe("transit");
+    });
+
+    it("falls back to checkpoints for Created status", () => {
+        expect(resolveOperationalJourneyStepId("Created", [])).toBe("created");
+        expect(resolveOperationalJourneyStepId("Created", [pickupCp])).toBe("pickup");
     });
 });
 
