@@ -1,15 +1,37 @@
-# Frontend TraceSol (Next.js)
+# Frontend — TraceSol Logistics
 
-Interfaz del proyecto `logistics_trace`: landing, demo Etapa 1 (`/demo`), panel y conexión Phantom.
+Aplicación **Next.js** con **Phantom** para operación logística, consulta pública y administración.
+
+Documentación general: [README principal](../README.md).
+
+---
+
+## Funcionalidades
+
+| Área | Rutas |
+|------|-------|
+| Landing | `/` |
+| Consulta pública | `/envios`, `/envios/[id]` |
+| Registro | `/registro` |
+| Panel | `/panel/*` |
+| Admin | `/admin/*` |
+| Consola | `/consola` |
+| Demo Etapa 1 | `/demo` |
+
+Mapa de recorrido, timeline, incidencias críticas on-chain y anclaje de alertas del motor.
+
+---
 
 ## Requisitos
 
-- Node.js acorde a `package.json`
-- Backend y Postgres opcionales pero necesarios para **sync HTTP** tras cada transacción firmada
+- Node.js / npm
+- Backend y Postgres — [backend/README.md](../backend/README.md)
+- Programa Solana en la red configurada
+- Phantom para firmar
 
-## Variables de entorno
+---
 
-Copia la plantilla y renómbrala como indica Next.js:
+## Configuración
 
 ```bash
 cp .env.example .env.local
@@ -17,12 +39,12 @@ cp .env.example .env.local
 
 | Variable | Descripción |
 |----------|-------------|
-| `NEXT_PUBLIC_SOLANA_RPC_URL` | RPC que usa el navegador (debe coincidir con la red donde está desplegado el programa). |
-| `NEXT_PUBLIC_PROGRAM_ID` | Program ID base58; mismo valor que `PROGRAM_ID` del backend. |
-| `NEXT_PUBLIC_API_BASE_URL` | URL hasta **`/api/v1`**, sin barra final (p. ej. `http://localhost:8000/api/v1`). Si queda vacío, el demo **omite** las llamadas sync. |
-| `NEXT_PUBLIC_SOLANA_NETWORK` | Etiqueta de red (localnet, devnet, etc.). |
+| `NEXT_PUBLIC_API_BASE_URL` | Con `/api/v1`, sin barra final |
+| `NEXT_PUBLIC_PROGRAM_ID` | Igual que `PROGRAM_ID` del backend |
+| `NEXT_PUBLIC_SOLANA_RPC_URL` | RPC del navegador |
+| `NEXT_PUBLIC_SOLANA_NETWORK` | `localnet`, `devnet`, … |
 
-Referencia ampliada: `.env.example` en la raíz del monorepo `logistics_trace`.
+---
 
 ## Desarrollo
 
@@ -31,12 +53,25 @@ npm install
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000). La demo Etapa 1 está en `/demo`.
-
-## Otros comandos
+[http://localhost:3000](http://localhost:3000)
 
 ```bash
-npm run lint
-npm run build
-npm test
+npm run lint && npm run build && npm test
 ```
+
+---
+
+## Flujo típico
+
+1. Stack [infra](../infra/README.md) + [Anchor](../programs/logistics_traceability/README.md) + [backend](../backend/README.md)
+2. `/consola` — activar programa
+3. `/registro` — actor
+4. `/panel` — operación
+
+Sin `NEXT_PUBLIC_API_BASE_URL` no hay sync a Postgres.
+
+---
+
+## Rama Git
+
+Rama `frontend` → merge a `main`.
