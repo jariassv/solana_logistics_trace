@@ -84,6 +84,7 @@ export type ChainStepKey =
     | "initialize"
     | "register_actor"
     | "create_shipment"
+    | "assign_carrier"
     | "record_checkpoint"
     | "report_critical_incident";
 
@@ -155,6 +156,31 @@ export function userFacingChainError(step: ChainStepKey, rawMessageOrError: stri
     if (m.includes("PublicKey") || m.includes("destinatario")) {
         return m;
     }
+    if (step === "assign_carrier") {
+        const lower = m.toLowerCase();
+        if (
+            lower.includes("carrieralreadyassigned") ||
+            lower.includes("carrier is already assigned") ||
+            lower.includes("already assigned")
+        ) {
+            return "Este envío ya tiene un transportista asignado.";
+        }
+        if (lower.includes("invalidcarrier") || lower.includes("invalid carrier")) {
+            return "El transportista debe ser un actor Carrier activo registrado en esta red.";
+        }
+        if (
+            lower.includes("unauthorizedsender") ||
+            lower.includes("only the shipment sender")
+        ) {
+            return "Solo el remitente del envío puede asignar transportista.";
+        }
+        if (
+            lower.includes("shipmenalreadyclosed") ||
+            lower.includes("already delivered or cancelled")
+        ) {
+            return "No se puede asignar transportista en un envío entregado o cancelado.";
+        }
+    }
     const detail = rawMessage.replace(/\s+/g, " ").trim().slice(0, 200);
     if (detail) {
         return `No se pudo completar la operación. Detalle: ${detail}`;
@@ -165,6 +191,7 @@ export function userFacingChainError(step: ChainStepKey, rawMessageOrError: stri
 export const syncSuccessCopy = {
     actor: "Actor registrado y replicado en el sistema central.",
     shipment: "Envío registrado y replicado en el sistema central.",
+    assignCarrier: "Transportista asignado y replicado en el sistema central.",
     checkpoint: "Evento logístico registrado y replicado en el sistema central.",
 } as const;
 

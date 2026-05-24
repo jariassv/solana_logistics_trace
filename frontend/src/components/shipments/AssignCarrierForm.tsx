@@ -75,13 +75,19 @@ export function AssignCarrierForm({
                 postAssignCarrierSync(apiBaseUrl, { tx_hash: sig }),
             );
             if (!sync.ok) {
-                throw new Error(userMessageForSyncFailure(sync));
+                throw new Error(
+                    userMessageForSyncFailure(
+                        "la asignación de transportista",
+                        sync.status,
+                        sync.json,
+                    ),
+                );
             }
 
             setStatus("Transportista asignado.");
             onSuccess?.();
         } catch (e) {
-            setError(userFacingChainError(e));
+            setError(userFacingChainError("assign_carrier", e));
             setStatus(null);
         } finally {
             setBusy(false);

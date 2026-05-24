@@ -69,6 +69,28 @@ describe("userFacingChainError", () => {
             "billetera",
         );
     });
+
+    it("does not show undefined detail when second arg is missing (regression)", () => {
+        const msg = userFacingChainError("assign_carrier", new Error("Simulation failed"));
+        expect(msg).not.toContain("undefined");
+        expect(msg.length).toBeGreaterThan(10);
+    });
+
+    it("maps assign_carrier already assigned", () => {
+        const msg = userFacingChainError(
+            "assign_carrier",
+            "Error: A carrier is already assigned to this shipment",
+        );
+        expect(msg).toContain("ya tiene");
+    });
+
+    it("maps assign_carrier invalid carrier role", () => {
+        const msg = userFacingChainError(
+            "assign_carrier",
+            "Carrier must be a registered active Carrier actor",
+        );
+        expect(msg).toContain("Carrier");
+    });
 });
 
 describe("healthProbeUserMessage", () => {
