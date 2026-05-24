@@ -15,11 +15,26 @@ export function filterCriticalIncidents(incidents: readonly IncidentItem[]): Inc
 
 const LOSS_TYPE_CODES = new Set(["Lost", "SHIPMENT_LOST"]);
 
+/** Envío con pérdida ya registrada (incidencia o estado operativo). */
+export function hasRegisteredLossIncident(incidents: readonly IncidentItem[]): boolean {
+    return incidents.some(isLossIncident);
+}
+
+export function shipmentHasRegisteredLoss(
+    shipmentStatus: string,
+    incidents: readonly IncidentItem[],
+): boolean {
+    return shipmentStatus === "Lost" || hasRegisteredLossIncident(incidents);
+}
+
 /** Incidencia automática del motor que debe abrir el modal de firma on-chain. */
 export function pickIncidentForAutoAnchorModal(
     incidents: readonly IncidentItem[],
     alreadyPrompted: ReadonlySet<string>,
 ): IncidentItem | null {
+    if (hasRegisteredLossIncident(incidents)) {
+        return null;
+    }
     for (const inc of incidents) {
         if (alreadyPrompted.has(inc.id)) {
             continue;
@@ -58,8 +73,7 @@ export function resolveLossJourneyStepId(
     status: string,
     checkpoints: readonly CheckpointItem[],
 ): string | null {
-    const hasOpenLoss = incidents.some((i) => i.status === "Open" && isLossIncident(i));
-    if (!hasOpenLoss) {
+    if (!shipmentHasRegisteredLoss(status, incidents)) {
         return null;
     }
     return resolveOperationalJourneyStepId(status, checkpoints);

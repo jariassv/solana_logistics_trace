@@ -12,7 +12,9 @@ import { ShipmentDetailWorkspace } from "@/components/shipments/ShipmentDetailWo
 import { canAssignCarrierAction } from "@/lib/admin/shipmentActions";
 import { canReportCriticalIncidentAction } from "@/lib/admin/incidentActions";
 import type { IncidentItem } from "@/lib/api/incidents";
+import { useShipmentIncidents } from "@/lib/api/useShipmentIncidents";
 import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
+import { shipmentHasRegisteredLoss } from "@/lib/incidents/criticalIncidentFlow";
 import { getPublicConfig } from "@/lib/env";
 import { useAdminState } from "@/lib/admin/useAdminState";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
@@ -23,6 +25,7 @@ export default function PanelShipmentDetailPage() {
     const { apiBaseUrl } = getPublicConfig();
     const { wallet, role, actorLoading } = useWalletSession();
     const { detail, error, loading, reload } = useShipmentDetail(apiBaseUrl, shipmentId, wallet);
+    const { items: incidents } = useShipmentIncidents(apiBaseUrl, shipmentId, wallet);
     const { programId, connection, payer, actorOnChain, resolveShipmentPda } = useAdminState();
     const [reportOpen, setReportOpen] = useState(false);
     const [assignOpen, setAssignOpen] = useState(false);
@@ -35,12 +38,18 @@ export default function PanelShipmentDetailPage() {
         return resolveShipmentPda(detail.onChainShipmentId);
     }, [detail, resolveShipmentPda]);
 
+    const hasRegisteredLoss = useMemo(
+        () => (detail ? shipmentHasRegisteredLoss(detail.status, incidents) : false),
+        [detail, incidents],
+    );
+
     const reportGate = canReportCriticalIncidentAction({
         role,
         hasWallet: Boolean(wallet),
         programConfigured: Boolean(programId),
         actorOnChain,
         actorLoading,
+        hasRegisteredLoss,
     });
 
     const assignGate = canAssignCarrierAction({

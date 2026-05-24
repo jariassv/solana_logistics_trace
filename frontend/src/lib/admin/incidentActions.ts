@@ -6,7 +6,14 @@ export function canReportCriticalIncidentAction(params: {
     programConfigured: boolean;
     actorOnChain: boolean | null;
     actorLoading: boolean;
+    hasRegisteredLoss?: boolean;
 }): { enabled: boolean; reason?: string } {
+    if (params.hasRegisteredLoss) {
+        return {
+            enabled: false,
+            reason: "Este envío tiene pérdida registrada; no se admiten más incidencias.",
+        };
+    }
     if (params.actorLoading) {
         return { enabled: false, reason: "Comprobando actor en backend…" };
     }

@@ -13,7 +13,9 @@ import { ShipmentDetailWorkspace } from "@/components/shipments/ShipmentDetailWo
 import { canAssignCarrierAction, canRecordCheckpointAction } from "@/lib/admin/shipmentActions";
 import { canReportCriticalIncidentAction } from "@/lib/admin/incidentActions";
 import type { IncidentItem } from "@/lib/api/incidents";
+import { useShipmentIncidents } from "@/lib/api/useShipmentIncidents";
 import { useShipmentDetail } from "@/lib/api/useShipmentDetail";
+import { shipmentHasRegisteredLoss } from "@/lib/incidents/criticalIncidentFlow";
 import { useAdminState } from "@/lib/admin/useAdminState";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
@@ -36,6 +38,7 @@ export default function AdminShipmentDetailPage() {
         shipmentId,
         wallet,
     );
+    const { items: incidents } = useShipmentIncidents(cfg.apiBaseUrl, shipmentId, wallet);
     const [recordOpen, setRecordOpen] = useState(false);
     const [reportOpen, setReportOpen] = useState(false);
     const [assignOpen, setAssignOpen] = useState(false);
@@ -59,12 +62,18 @@ export default function AdminShipmentDetailPage() {
         viewerWallet: wallet,
     });
 
+    const hasRegisteredLoss = useMemo(
+        () => (detail ? shipmentHasRegisteredLoss(detail.status, incidents) : false),
+        [detail, incidents],
+    );
+
     const reportGate = canReportCriticalIncidentAction({
         role,
         hasWallet: Boolean(wallet),
         programConfigured: Boolean(programId),
         actorOnChain,
         actorLoading,
+        hasRegisteredLoss,
     });
 
     const assignGate = canAssignCarrierAction({

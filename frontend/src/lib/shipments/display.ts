@@ -5,6 +5,7 @@ export function statusBadgeClass(status: string): string {
         case "Delivered":
             return "badge badge--success";
         case "Cancelled":
+        case "Lost":
             return "badge badge--danger";
         case "OutForDelivery":
             return "badge badge--info";
@@ -28,6 +29,7 @@ export function statusLabel(status: string): string {
         Delivered: "Entregado",
         Returned: "Devuelto",
         Cancelled: "Cancelado",
+        Lost: "Pérdida",
     };
     return map[status] ?? status;
 }

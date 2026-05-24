@@ -17,6 +17,7 @@ import type { ShipmentDetail } from "@/lib/api/shipments";
 import {
     filterCriticalIncidents,
     pickIncidentForAutoAnchorModal,
+    shipmentHasRegisteredLoss,
 } from "@/lib/incidents/criticalIncidentFlow";
 import { canResolveIncident } from "@/lib/panel/capabilities";
 import { buildMonitoringGlance } from "@/lib/telemetry/monitoringGlance";
@@ -81,8 +82,18 @@ export function ShipmentDetailWorkspace({
         autoAnchorPromptedRef.current.clear();
     }, [detail.shipmentId]);
 
+    const hasRegisteredLoss = useMemo(
+        () => shipmentHasRegisteredLoss(detail.status, items),
+        [detail.status, items],
+    );
+
     useEffect(() => {
-        if (!canAnchorIncidentOnChain || !onAnchorIncidentOnChain || loading) {
+        if (
+            !canAnchorIncidentOnChain ||
+            !onAnchorIncidentOnChain ||
+            loading ||
+            hasRegisteredLoss
+        ) {
             return;
         }
         const pick = pickIncidentForAutoAnchorModal(items, autoAnchorPromptedRef.current);
@@ -91,7 +102,7 @@ export function ShipmentDetailWorkspace({
         }
         autoAnchorPromptedRef.current.add(pick.id);
         onAnchorIncidentOnChain(pick);
-    }, [items, loading, canAnchorIncidentOnChain, onAnchorIncidentOnChain]);
+    }, [items, loading, canAnchorIncidentOnChain, onAnchorIncidentOnChain, hasRegisteredLoss]);
 
     const criticalIncidents = useMemo(() => filterCriticalIncidents(items), [items]);
     const traceabilityCount = detail.checkpoints.length + criticalIncidents.length;

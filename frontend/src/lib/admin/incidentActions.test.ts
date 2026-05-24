@@ -47,4 +47,17 @@ describe("canReportCriticalIncidentAction", () => {
         expect(gate.enabled).toBe(false);
         expect(gate.reason).toMatch(/Comprobando/i);
     });
+
+    it("blocks when shipment has registered loss", () => {
+        const gate = canReportCriticalIncidentAction({
+            role: "Sender",
+            hasWallet: true,
+            programConfigured: true,
+            actorOnChain: true,
+            actorLoading: false,
+            hasRegisteredLoss: true,
+        });
+        expect(gate.enabled).toBe(false);
+        expect(gate.reason).toMatch(/pérdida registrada/i);
+    });
 });

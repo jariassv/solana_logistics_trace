@@ -5,10 +5,12 @@ import type { CheckpointItem } from "@/lib/api/shipments";
 
 import {
     filterCriticalIncidents,
+    hasRegisteredLossIncident,
     isCriticalIncident,
     isLossIncident,
     pickIncidentForAutoAnchorModal,
     resolveLossJourneyStepId,
+    shipmentHasRegisteredLoss,
 } from "./criticalIncidentFlow";
 
 const baseIncident: IncidentItem = {
@@ -56,6 +58,19 @@ describe("criticalIncidentFlow", () => {
         expect(pickIncidentForAutoAnchorModal([baseIncident], prompted)).toBeNull();
     });
 
+    it("does not auto-open when loss is registered", () => {
+        const loss = { ...baseIncident, id: "loss-1", incidentType: "Lost" };
+        expect(pickIncidentForAutoAnchorModal([baseIncident, loss], new Set())).toBeNull();
+    });
+
+    it("detects registered loss from status or incidents", () => {
+        expect(hasRegisteredLossIncident([{ ...baseIncident, incidentType: "Lost" }])).toBe(
+            true,
+        );
+        expect(shipmentHasRegisteredLoss("InTransit", [])).toBe(false);
+        expect(shipmentHasRegisteredLoss("Lost", [])).toBe(true);
+    });
+
     it("filters critical incidents for traceability", () => {
         expect(isCriticalIncident(baseIncident)).toBe(true);
         expect(filterCriticalIncidents([baseIncident, { ...baseIncident, id: "2", severity: "High" }])).toHaveLength(
@@ -93,13 +108,13 @@ describe("criticalIncidentFlow", () => {
         expect(stepId).toBe("transit");
     });
 
-    it("returns null when loss is resolved", () => {
+    it("highlights rail when loss is resolved but still registered", () => {
         expect(
             resolveLossJourneyStepId(
                 [{ ...baseIncident, incidentType: "Lost", status: "Resolved" }],
                 "InTransit",
                 [pickupCp],
             ),
-        ).toBeNull();
+        ).toBe("transit");
     });
 });
