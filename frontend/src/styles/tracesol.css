@@ -3329,7 +3329,8 @@ table.data-table {
 }
 
 .shipment-timeline__item--incident-lost {
-  --timeline-incident-accent: var(--color-danger);
+  --timeline-incident-accent: color-mix(in srgb, var(--color-danger) 58%, var(--color-primary-dark));
+  --timeline-loss-fg: #fff;
 }
 
 .shipment-timeline__icon--incident {
@@ -3341,7 +3342,9 @@ table.data-table {
 }
 
 .shipment-timeline__icon--incident-lost {
-  background: color-mix(in srgb, var(--timeline-incident-accent) 14%, var(--color-bg-card));
+  background: var(--timeline-incident-accent);
+  border-color: color-mix(in srgb, var(--timeline-incident-accent) 80%, var(--color-border));
+  color: var(--timeline-loss-fg);
 }
 
 .shipment-timeline__type--incident {
@@ -4015,22 +4018,30 @@ table.data-table {
   opacity: 0.55;
 }
 
-.shipment-journey__step.is-loss .shipment-journey__icon-wrap {
-  background: color-mix(in srgb, var(--color-danger) 82%, var(--color-bg-card));
-  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-primary-dark));
+.shipment-journey__step.is-loss .shipment-journey__icon-wrap,
+.shipment-journey__step.is-loss.is-current .shipment-journey__icon-wrap {
+  background: color-mix(in srgb, var(--color-danger) 58%, var(--color-primary-dark));
+  border-color: color-mix(in srgb, var(--color-danger) 72%, var(--color-primary-dark));
   color: #fff;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-danger) 16%, transparent),
-    0 2px 8px color-mix(in srgb, var(--color-danger) 20%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--color-danger) 26%, transparent);
 }
 
-.shipment-journey__step.is-loss .shipment-journey__label {
-  color: color-mix(in srgb, var(--color-danger) 88%, var(--color-text));
+.shipment-journey__step.is-loss .shipment-journey__step-icon,
+.shipment-journey__step.is-loss.is-current .shipment-journey__step-icon {
+  color: #fff;
+  stroke: #fff;
+  opacity: 1;
+}
+
+.shipment-journey__step.is-loss .shipment-journey__label,
+.shipment-journey__step.is-loss.is-current .shipment-journey__label {
+  color: color-mix(in srgb, var(--color-danger) 72%, var(--color-text));
   font-weight: 650;
 }
 
 .shipment-journey__step.is-loss.is-current .shipment-journey__here {
-  color: var(--color-danger);
+  color: color-mix(in srgb, var(--color-danger) 78%, var(--color-primary-dark));
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-accent-bg));
 }
 
 .shipment-journey__exception {
