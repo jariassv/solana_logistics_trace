@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ConsolaFooterLink } from "@/components/layout/ConsolaFooterLink";
+
 export function SiteFooter() {
     return (
         <footer className="site-footer" suppressHydrationWarning>
@@ -32,9 +34,7 @@ export function SiteFooter() {
                         <h4>Infra</h4>
                         <ul>
                             <li>
-                                <Link prefetch={false} href="/consola">
-                                    Consola del sistema
-                                </Link>
+                                <ConsolaFooterLink />
                             </li>
                             <li>
                                 <Link prefetch={false} href="/sistema">

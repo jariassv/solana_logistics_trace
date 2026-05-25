@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ConsolaPageGate } from "@/components/consola/ConsolaPageGate";
 import { OwnerConsoleClient } from "@/components/consola/OwnerConsoleClient";
 import { IconRadio } from "@/components/ui/TraceIcons";
 
@@ -30,7 +31,9 @@ export default function ConsolaPage() {
                         </Link>
                     </div>
                 </header>
-                <OwnerConsoleClient />
+                <ConsolaPageGate>
+                    <OwnerConsoleClient />
+                </ConsolaPageGate>
             </div>
         </main>
     );

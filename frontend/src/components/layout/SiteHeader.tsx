@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useConsolaAccess } from "@/lib/consola/useConsolaAccess";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 function shortPubkey(pk: string, head = 4, tail = 4): string {
@@ -30,7 +31,6 @@ const NAV_SPECS: NavSpec[] = [
         enabled: ({ wallet }) => Boolean(wallet),
         disabledTitle: () => "Conecte la wallet con el botón superior",
     },
-    { href: "/consola", label: "Consola", enabled: () => true, disabledTitle: () => "" },
 ];
 
 function navClass(active: boolean, disabled: boolean): string {
@@ -44,10 +44,24 @@ function navClass(active: boolean, disabled: boolean): string {
 export function SiteHeader() {
     const pathname = usePathname();
     const { wallet, role, actorLoading, connectError, connect, disconnect } = useWalletSession();
+    const { canAccess: canAccessConsola } = useConsolaAccess();
     const [menuOpen, setMenuOpen] = useState(false);
     const [navReady, setNavReady] = useState(false);
 
     const navState = useMemo(() => ({ wallet, role }), [wallet, role]);
+
+    const visibleNavSpecs = useMemo(() => {
+        const items = [...NAV_SPECS];
+        if (canAccessConsola) {
+            items.push({
+                href: "/consola",
+                label: "Consola",
+                enabled: () => true,
+                disabledTitle: () => "",
+            });
+        }
+        return items.filter((spec) => spec.href !== "/admin" || Boolean(wallet));
+    }, [canAccessConsola, wallet]);
 
     useEffect(() => {
         let alive = true;
@@ -140,7 +154,7 @@ export function SiteHeader() {
                         TraceSol Logistics
                     </Link>
                     <nav className="nav-main" aria-label="Principal">
-                        {NAV_SPECS.filter((spec) => spec.href !== "/admin" || wallet).map(renderNavLink)}
+                        {visibleNavSpecs.map(renderNavLink)}
                     </nav>
                     <div className="header-inner__end">
                         <div className="header-wallet" aria-label="Wallet">
@@ -228,7 +242,7 @@ export function SiteHeader() {
                 }}
             >
                 <div className="mobile-nav__panel">
-                    {NAV_SPECS.filter((spec) => spec.href !== "/admin" || wallet).map((spec) => {
+                    {visibleNavSpecs.map((spec) => {
                         const active =
                             spec.href === "/"
                                 ? pathname === "/"

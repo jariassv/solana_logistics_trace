@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { ConsolaNavLink } from "@/components/consola/ConsolaNavLink";
+
 import {
     IconAlert,
     IconCheckCircle,
@@ -201,9 +203,9 @@ export function LandingHome() {
                                 <li>Sincronización automática entre red y base operativa.</li>
                                 <li>Explorador público para auditorías externas (devnet/mainnet).</li>
                             </ul>
-                            <Link prefetch={false} className="btn btn--secondary btn--sm" href="/consola">
+                            <ConsolaNavLink className="btn btn--secondary btn--sm">
                                 Estado de red y programa
-                            </Link>
+                            </ConsolaNavLink>
                         </div>
                         <div className="landing-benefits">
                             {BLOCKCHAIN_BENEFITS.map(({ icon: Icon, title, description }) => (

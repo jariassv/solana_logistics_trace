@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useConsolaAccess } from "@/lib/consola/useConsolaAccess";
 import { isKnownActorRole } from "@/lib/panel/capabilities";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
@@ -13,6 +14,7 @@ function linkClass(active: boolean): string {
 export function PanelEtapa2Rail() {
     const pathname = usePathname();
     const { wallet, role, actorLoading } = useWalletSession();
+    const { canAccess: canAccessConsola } = useConsolaAccess();
 
     const resumenActive = pathname === "/panel" || pathname === "/panel/";
     const enviosActive = pathname.startsWith("/panel/envios");
@@ -40,9 +42,15 @@ export function PanelEtapa2Rail() {
                         Admin
                     </Link>
                 ) : null}
-                <Link prefetch={false} className={linkClass(pathname.startsWith("/consola"))} href="/consola">
-                    Consola
-                </Link>
+                {canAccessConsola ? (
+                    <Link
+                        prefetch={false}
+                        className={linkClass(pathname.startsWith("/consola"))}
+                        href="/consola"
+                    >
+                        Consola
+                    </Link>
+                ) : null}
                 <Link prefetch={false} className={linkClass(pathname.startsWith("/sistema"))} href="/sistema">
                     Red (.env)
                 </Link>

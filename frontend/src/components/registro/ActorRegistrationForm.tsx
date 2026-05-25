@@ -20,6 +20,7 @@ import { ActorRoleCode as Role } from "@/lib/solana/ix";
 import { createRegisterActorIx } from "@/lib/solana/instructions";
 import { fetchProgramConfig } from "@/lib/solana/program_config";
 import { actorPda } from "@/lib/solana/pdas";
+import { ConsolaNavLink } from "@/components/consola/ConsolaNavLink";
 import { useWalletSession } from "@/lib/wallet/WalletSessionContext";
 
 const FALLBACK_ACTOR_ROWS: CatalogOptionRow<ActorRoleCode>[] = [
@@ -366,9 +367,9 @@ export function ActorRegistrationForm({
                                 Activar programa (una vez)
                             </button>
                         ) : (
-                            <a className="btn btn--ghost btn--sm" href="/consola">
+                            <ConsolaNavLink className="btn btn--ghost btn--sm">
                                 Activar programa en Consola
-                            </a>
+                            </ConsolaNavLink>
                         )}
                     </p>
                 ) : null}
