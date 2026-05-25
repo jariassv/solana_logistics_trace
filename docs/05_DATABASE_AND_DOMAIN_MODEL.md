@@ -529,67 +529,67 @@ La tabla `shipments` pasaría a ser **proyección** actualizada por consumidores
 ```mermaid
 erDiagram
     cat_actor_role {
-        text code PK
-        text label
+        string code PK
+        string label
     }
     actors {
-        text wallet PK
-        text role FK
-        text registration_tx_hash UK
+        string wallet PK
+        string role FK
+        string registration_tx_hash
     }
     cat_shipment_status {
-        text code PK
+        string code PK
     }
     shipments {
-        uuid id PK
-        bigint on_chain_shipment_id UK
-        text creation_tx_hash UK
-        text status FK
-        text sender_wallet
-        text recipient_wallet
-        text carrier_wallet
+        string id PK
+        int on_chain_shipment_id
+        string creation_tx_hash
+        string status FK
+        string sender_wallet
+        string recipient_wallet
+        string carrier_wallet
     }
     cat_checkpoint_type {
-        text code PK
+        string code PK
     }
     checkpoints {
-        bigint id PK
-        uuid shipment_id FK
-        bigint on_chain_checkpoint_id
-        text tx_hash UK
-        jsonb metadata_json
+        int id PK
+        string shipment_id FK
+        int on_chain_checkpoint_id
+        string tx_hash
+        string metadata_json
     }
     incidents {
-        uuid id PK
-        uuid shipment_id FK
-        text source
-        text tx_hash UK
-        jsonb evidence_json
+        string id PK
+        string shipment_id FK
+        string source
+        string tx_hash
+        string evidence_json
     }
     telemetry_events {
-        uuid id PK
-        uuid shipment_id FK
-        text telemetry_type
-        timestamptz recorded_at
+        string id PK
+        string shipment_id FK
+        string telemetry_type
+        string recorded_at
     }
     shipment_monitoring {
-        uuid shipment_id PK_FK
-        text status
+        string shipment_id PK
+        string status
     }
     incident_rules {
-        text rule_name PK
-        text incident_type
-        jsonb condition_json
+        string rule_name PK
+        string incident_type
+        string condition_json
     }
 
-    cat_actor_role ||--o{ actors : role
-    cat_shipment_status ||--o{ shipments : status
-    actors ||--o{ shipments : sender
-    shipments ||--|{ checkpoints : shipment_id
-    shipments ||--|{ incidents : shipment_id
-    shipments ||--|{ telemetry_events : shipment_id
-    shipments ||--o| shipment_monitoring : shipment_id
-    cat_checkpoint_type ||--o{ checkpoints : checkpoint_type
+    cat_actor_role ||--o{ actors : "role"
+    cat_shipment_status ||--o{ shipments : "status"
+    actors ||--o{ shipments : "sender"
+    shipments ||--o{ checkpoints : "shipment_id"
+    shipments ||--o{ incidents : "shipment_id"
+    shipments ||--o{ telemetry_events : "shipment_id"
+    shipments ||--o| shipment_monitoring : "shipment_id"
+    cat_checkpoint_type ||--o{ checkpoints : "checkpoint_type"
 ```
 
 ### 13.2 Relaciones de dominio (agregado Shipment)

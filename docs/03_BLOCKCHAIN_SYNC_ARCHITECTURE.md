@@ -175,19 +175,19 @@ El pipeline vive en `backend/src/services/etapa1_sync/`. Los handlers HTTP (`han
 ```mermaid
 flowchart TB
     subgraph HTTP["Rocket handlers"]
-        A1[POST /actors/sync]
-        A2[POST /shipments/sync]
-        A3[POST /assign-carrier/sync]
-        A4[POST /checkpoints/sync]
-        A5[POST /incidents/sync]
+        A1["POST /actors/sync"]
+        A2["POST /shipments/sync"]
+        A3["POST /assign-carrier/sync"]
+        A4["POST /checkpoints/sync"]
+        A5["POST /incidents/sync"]
     end
 
     subgraph Engine["etapa1_sync"]
         V[validate_signature_base58]
         T[get_transaction_json]
         F[find_program_instruction]
-        D[decode accounts / ix args]
-        I{idempotency check]
+        D["decode accounts and ix args"]
+        I{"idempotency check"}
         P[persist repos]
     end
 
@@ -196,7 +196,12 @@ flowchart TB
         DB[(PostgreSQL)]
     end
 
-    A1 & A2 & A3 & A4 & A5 --> V --> T --> F --> D --> I --> P
+    A1 --> V
+    A2 --> V
+    A3 --> V
+    A4 --> V
+    A5 --> V
+    V --> T --> F --> D --> I --> P
     T --> RPC
     D --> RPC
     P --> DB

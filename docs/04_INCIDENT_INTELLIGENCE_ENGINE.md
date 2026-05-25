@@ -610,31 +610,31 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    participant T as Telemetry insert
+    participant T as "Telemetry insert"
     participant RE as RuleEngineService
     participant R1 as ColdChainRule
     participant R2 as DelayRule
-    participant OFF as evaluate_offline
+    participant EVO as evaluate_offline
     participant IP as IncidentProcessor
     participant DB as PostgreSQL
 
     T->>RE: process_telemetry
     RE->>R1: evaluate_telemetry
-    alt temp out of range
+    alt "temp out of range"
         R1-->>RE: IncidentDetectionResult
         RE->>IP: apply_detection
-        IP->>DB: incidents + checkpoint
+        IP->>DB: incidents and checkpoint
     end
 
-    Note over RE,OFF: scan_shipment cada 300s
+    Note over RE,EVO: scan_shipment cada 300s
     RE->>R2: evaluate_shipment
-    alt sin checkpoint 2h
+    alt "sin checkpoint 2h"
         R2-->>RE: SHIPMENT_DELAYED
         RE->>IP: apply_detection
     end
-    RE->>OFF: sensor offline
-    alt sin temp 10 min
-        OFF-->>RE: SENSOR_OFFLINE
+    RE->>EVO: sensor offline
+    alt "sin temp 10 min"
+        EVO-->>RE: SENSOR_OFFLINE
         RE->>IP: apply_detection
     end
 ```
